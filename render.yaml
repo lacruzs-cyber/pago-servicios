@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pago-servicios
+    runtime: node
+    rootDir: .
+    buildCommand: cd app && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false   # completar en Render Dashboard
+      - key: SUPABASE_SERVICE_KEY
+        sync: false   # completar en Render Dashboard
+    healthCheckPath: /api/servicios

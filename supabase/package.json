@@ -1,0 +1,13 @@
+{
+  "name": "pago-servicios-supabase",
+  "version": "1.0.0",
+  "description": "Scripts de migracion y mantenimiento de Supabase",
+  "scripts": {
+    "migrate": "node migrate-excel.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.1",
+    "dotenv": "^16.6.1",
+    "xlsx": "^0.18.5"
+  }
+}

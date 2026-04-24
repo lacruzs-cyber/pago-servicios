@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pago de Servicios</string>
+    <string name="title_activity_main">Pago de Servicios</string>
+    <string name="package_name">com.pagodeservicios.app</string>
+    <string name="custom_url_scheme">com.pagodeservicios.app</string>
+</resources>

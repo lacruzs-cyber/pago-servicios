@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (nunca subir al repo)
+.env
+.env.local
+.env.production
+backend/.env
+supabase/.env
+app/.env.production
+
+# Build frontend
+app/dist/
+
+# Android — archivos generados (keystore, build outputs)
+app/android/.gradle/
+app/android/app/build/
+app/android/build/
+*.keystore
+*.jks
+
+# Archivos de datos sensibles
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
