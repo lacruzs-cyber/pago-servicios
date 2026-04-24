@@ -3,7 +3,7 @@ services:
     name: pago-servicios
     runtime: node
     rootDir: .
-    buildCommand: cd app && npm install && npm run build && cd ../backend && npm install
+    buildCommand: cd app && npm install --include=dev && npm run build && cd ../backend && npm install
     startCommand: cd backend && node server.js
     envVars:
       - key: NODE_ENV
