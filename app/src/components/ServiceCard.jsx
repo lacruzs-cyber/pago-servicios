@@ -101,7 +101,7 @@ export default function ServiceCard({
                 ✅ Marcar como pagado
               </button>
             ) : (
-              <button className="btn btn-success btn-sm"
+              <button className="btn btn-yellow btn-sm"
                 onClick={e => { e.stopPropagation(); onRegistrarPago({ ...servicio, _vencimientoId: proximo.id, _fechaVenc: proximo._fecha }); }}>
                 ✅ Registrar pago (ingresá monto)
               </button>
@@ -126,7 +126,7 @@ export default function ServiceCard({
             }
           </div>
           <div className="card-actions-inline">
-            <button className="btn btn-success btn-sm"
+            <button className="btn btn-yellow btn-sm"
               onClick={e => { e.stopPropagation(); onRegistrarPago(servicio); }}>
               ✅ Registrar pago
             </button>
@@ -223,7 +223,7 @@ export default function ServiceCard({
           )}
 
           <div className="card-footer-actions">
-            <button className="btn btn-success btn-sm" onClick={() => onRegistrarPago(servicio)}>
+            <button className="btn btn-yellow btn-sm" onClick={() => onRegistrarPago(servicio)}>
               ✅ Registrar pago
             </button>
             <button className="btn btn-primary btn-sm" onClick={() => onAgregarVencimiento(servicio)}>
