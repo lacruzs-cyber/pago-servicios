@@ -4,9 +4,9 @@
 
 /* ── Variables ── */
 :root {
-  --primary: #059669;
-  --primary-hover: #047857;
-  --primary-light: #ECFDF5;
+  --primary: #7C3AED;
+  --primary-hover: #6D28D9;
+  --primary-light: #EDE9FE;
   --success: #16A34A;
   --success-light: #F0FDF4;
   --warning: #D97706;
@@ -33,7 +33,7 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #F0FDF4;
+  background: #F5F3FF;
   color: var(--gray-800);
   font-size: 14px;
   line-height: 1.5;
@@ -48,7 +48,7 @@ body {
 
 /* ── Header ── */
 .app-header {
-  background: linear-gradient(135deg, #064E3B 0%, #065F46 60%, #0F766E 100%);
+  background: linear-gradient(135deg, #2E1065 0%, #4C1D95 60%, #5B21B6 100%);
   border-bottom: none;
   padding: 12px 20px;
   display: flex;
@@ -58,7 +58,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 12px rgba(6,78,59,.35);
+  box-shadow: 0 2px 12px rgba(46,16,101,.35);
 }
 
 .header-left {
@@ -82,7 +82,7 @@ body {
 
 .app-subtitle {
   font-size: 12px;
-  color: #A7F3D0;
+  color: #DDD6FE;
 }
 
 .header-right {
@@ -104,7 +104,7 @@ body {
 }
 .app-header .btn-outline {
   background: rgba(255,255,255,.9);
-  color: #064E3B;
+  color: #4C1D95;
   border-color: rgba(255,255,255,.7);
   font-weight: 600;
 }
@@ -113,19 +113,19 @@ body {
 }
 .app-header .btn-google {
   background: rgba(255,255,255,.9);
-  color: #064E3B;
+  color: #4C1D95;
   border-color: rgba(255,255,255,.6);
 }
 .app-header .btn-google:hover:not(:disabled) {
   background: white;
 }
 .app-header .btn-google-connected {
-  background: #A7F3D0;
-  color: #064E3B;
-  border-color: #6EE7B7;
+  background: #DDD6FE;
+  color: #4C1D95;
+  border-color: #C4B5FD;
 }
 .app-header .btn-google-connected:hover:not(:disabled) {
-  background: #D1FAE5;
+  background: #EDE9FE;
 }
 
 /* ── Tabs ── */
@@ -173,8 +173,8 @@ body {
 }
 
 .tab-count {
-  background: #D1FAE5;
-  color: #065F46;
+  background: #EDE9FE;
+  color: #4C1D95;
   font-size: 11px;
   font-weight: 600;
   padding: 1px 6px;
@@ -204,7 +204,7 @@ body {
 .loading-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #D1FAE5;
+  border: 3px solid #EDE9FE;
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin .7s linear infinite;
@@ -315,7 +315,7 @@ body {
   outline: none;
 }
 
-.form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5,150,105,.12); }
+.form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
 
 .form-error {
   font-size: 12px;
@@ -398,12 +398,12 @@ body {
 
 /* ── Info banner ── */
 .info-banner {
-  background: #ECFDF5;
-  border: 1.5px solid #A7F3D0;
+  background: #EDE9FE;
+  border: 1.5px solid #C4B5FD;
   border-radius: 8px;
   padding: 12px 14px;
   font-size: 13px;
-  color: #065F46;
+  color: #4C1D95;
   line-height: 1.6;
 }
 
@@ -430,7 +430,7 @@ body {
   overflow: hidden;
 }
 
-.service-card:hover { box-shadow: var(--shadow-md); border-color: #A7F3D0; }
+.service-card:hover { box-shadow: var(--shadow-md); border-color: #C4B5FD; }
 .card-vencido { border-color: #FECACA; background: #FFF5F5; }
 .card-urgente { border-color: #FED7AA; background: #FFFBF5; }
 
@@ -444,7 +444,7 @@ body {
   user-select: none;
 }
 
-.card-header:hover { background: #F0FDF4; }
+.card-header:hover { background: #F5F3FF; }
 
 .card-header-left {
   display: flex;
@@ -503,7 +503,7 @@ body {
   flex-wrap: wrap;
 }
 
-.card-body { padding: 12px 14px; border-top: 1px solid #ECFDF5; }
+.card-body { padding: 12px 14px; border-top: 1px solid #EDE9FE; }
 
 .card-footer-actions {
   display: flex;
@@ -511,7 +511,7 @@ body {
   flex-wrap: wrap;
   padding-top: 10px;
   margin-top: 10px;
-  border-top: 1px solid #ECFDF5;
+  border-top: 1px solid #EDE9FE;
 }
 
 /* ── Vencimientos ── */
@@ -531,7 +531,7 @@ body {
   justify-content: space-between;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #F0FDF4;
+  background: #F5F3FF;
   margin-bottom: 5px;
   gap: 8px;
 }
@@ -557,12 +557,12 @@ body {
 .venc-pagados .venc-section-title { color: var(--success); }
 
 .estimacion-banner {
-  background: #F0FDF4;
-  border: 1px solid #BBF7D0;
+  background: #F5F3FF;
+  border: 1px solid #DDD6FE;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 12px;
-  color: #166534;
+  color: #4C1D95;
   margin-bottom: 8px;
 }
 
@@ -607,9 +607,9 @@ body {
 .badge-vencido   { background: #FEE2E2; color: #991B1B; }
 .badge-hoy       { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
 .badge-urgente   { background: #FED7AA; color: #9A3412; }
-.badge-proximo   { background: #D1FAE5; color: #065F46; }
-.badge-normal    { background: #DCFCE7; color: #166534; }
-.badge-lejano    { background: #F0FDF4; color: #4ADE80; color: #16A34A; }
+.badge-proximo   { background: #EDE9FE; color: #4C1D95; }
+.badge-normal    { background: #F3E8FF; color: #6B21A8; }
+.badge-lejano    { background: #F5F3FF; color: #7C3AED; }
 .badge-pagado    { background: var(--success-light); color: #166534; }
 .badge-sin-vencimiento { background: var(--gray-100); color: var(--gray-400); }
 
@@ -625,7 +625,7 @@ body {
 .summary-stat {
   background: white;
   border-radius: var(--radius);
-  border: 1.5px solid #D1FAE5;
+  border: 1.5px solid #DDD6FE;
   padding: 12px 20px;
   display: flex;
   flex-direction: column;
@@ -672,13 +672,13 @@ body {
 .dash-card {
   background: white;
   border-radius: var(--radius);
-  border: 1.5px solid #D1FAE5;
+  border: 1.5px solid #DDD6FE;
   padding: 14px;
   box-shadow: var(--shadow);
   transition: box-shadow .15s, border-color .15s;
 }
 
-.dash-card:hover { box-shadow: var(--shadow-md); border-color: #A7F3D0; }
+.dash-card:hover { box-shadow: var(--shadow-md); border-color: #C4B5FD; }
 .dash-card-vencido { border-color: #FECACA; background: #FFF5F5; }
 .dash-card-urgente { border-color: #FED7AA; background: #FFFBF5; }
 
@@ -732,8 +732,8 @@ body {
 }
 
 .category-count {
-  background: #D1FAE5;
-  color: #065F46;
+  background: #EDE9FE;
+  color: #4C1D95;
   font-size: 11px;
   padding: 1px 7px;
   border-radius: 99px;
@@ -775,7 +775,7 @@ body {
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-.toast-success { background: #064E3B; color: white; }
+.toast-success { background: #2E1065; color: white; }
 .toast-warning { background: #92400E; color: white; }
 .toast-error   { background: var(--danger); color: white; }
 
@@ -811,7 +811,7 @@ body {
 
 .ocultos-section {
   margin-top: 32px;
-  border-top: 2px dashed #BBF7D0;
+  border-top: 2px dashed #DDD6FE;
   padding-top: 16px;
 }
 .ocultos-section-title {
@@ -827,7 +827,7 @@ body {
 /* ── Sección Mamá ── */
 .mama-section {
   margin-bottom: 24px;
-  border: 2px solid #14B8A6;
+  border: 2px solid #A855F7;
   border-radius: 14px;
   overflow: hidden;
 }
@@ -838,15 +838,15 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+  background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%);
   border: none;
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
-  color: #0f766e;
+  color: #6B21A8;
   transition: background .15s;
 }
-.mama-section-header:hover { background: linear-gradient(135deg, #dcfce7 0%, #cffafe 100%); }
+.mama-section-header:hover { background: linear-gradient(135deg, #f3e8ff 0%, #ddd6fe 100%); }
 
 .mama-title {
   display: flex;
@@ -864,16 +864,16 @@ body {
   border-radius: 10px;
 }
 
-.mama-toggle { font-size: 12px; color: #0f766e; }
+.mama-toggle { font-size: 12px; color: #6B21A8; }
 
-.mama-body { padding: 12px 14px 14px; background: #fafffe; }
+.mama-body { padding: 12px 14px 14px; background: #fefbff; }
 
 .mama-hint {
   font-size: 13px;
-  color: #0f766e;
+  color: #6B21A8;
   margin-bottom: 12px;
   padding: 8px 12px;
-  background: #ccfbf1;
+  background: #ede9fe;
   border-radius: 6px;
 }
 
