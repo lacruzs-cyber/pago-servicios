@@ -87,11 +87,6 @@ export async function createCalendarEvent(servicio, fechaVencimiento, monto, not
 
   const dateStr = fechaVencimiento; // formato YYYY-MM-DD
 
-  // Calcular fecha de fin (mismo día = evento de día completo)
-  const fechaFin = new Date(dateStr + 'T12:00:00');
-  fechaFin.setDate(fechaFin.getDate() + 1);
-  const dateFin = fechaFin.toISOString().split('T')[0];
-
   const descripcion = [
     `📋 Servicio: ${servicio}`,
     monto ? `💵 Monto: $${Number(monto).toLocaleString('es-AR')}` : '',
@@ -100,24 +95,25 @@ export async function createCalendarEvent(servicio, fechaVencimiento, monto, not
     '→ Abrí la app "Pago de Servicios" para marcarlo como pagado.',
   ].filter(Boolean).join('\n');
 
+  // Evento con hora para poder definir alertas precisas:
+  // inicio 10:00 del día de vencimiento, fin 10:30
   const event = {
     summary: `💳 Vencimiento: ${servicio}`,
     description: descripcion,
     start: {
-      date: dateStr,
+      dateTime: `${dateStr}T10:00:00`,
       timeZone: 'America/Argentina/Buenos_Aires',
     },
     end: {
-      date: dateFin,
+      dateTime: `${dateStr}T10:30:00`,
       timeZone: 'America/Argentina/Buenos_Aires',
     },
     colorId: '11', // rojo tomate
     reminders: {
       useDefault: false,
       overrides: [
-        { method: 'popup', minutes: 2 * 24 * 60 },  // 2 días antes
-        { method: 'email', minutes: 2 * 24 * 60 },  // 2 días antes por email
-        { method: 'popup', minutes: 60 },            // 1 hora antes del día
+        { method: 'popup', minutes: 0 },    // día del vencimiento a las 10:00
+        { method: 'popup', minutes: 840 },  // día anterior a las 20:00 (14hs antes)
       ],
     },
   };
