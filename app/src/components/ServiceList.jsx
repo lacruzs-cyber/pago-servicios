@@ -35,15 +35,18 @@ export default function ServiceList({
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [servicios, busqueda, categoriaFiltro]);
 
-  const { porCategoria, porCategoriaMama } = useMemo(() => {
+  const { porCategoria, serviciosMama } = useMemo(() => {
     const normal = {};
-    const mama = {};
+    const mama = [];
     filtrados.forEach(s => {
-      const dest = ES_CAT_MAMA(s.categoria) ? mama : normal;
-      if (!dest[s.categoria]) dest[s.categoria] = [];
-      dest[s.categoria].push(s);
+      if (ES_CAT_MAMA(s.categoria)) {
+        mama.push(s);
+      } else {
+        if (!normal[s.categoria]) normal[s.categoria] = [];
+        normal[s.categoria].push(s);
+      }
     });
-    return { porCategoria: normal, porCategoriaMama: mama };
+    return { porCategoria: normal, serviciosMama: mama };
   }, [filtrados]);
 
   const cardProps = {
@@ -134,8 +137,8 @@ export default function ServiceList({
       {/* Grupos normales */}
       {Object.entries(porCategoria).map(([catKey, items]) => renderGrupo(catKey, items))}
 
-      {/* Grupos Mama — al final */}
-      {Object.entries(porCategoriaMama).map(([catKey, items]) => renderGrupo(catKey, items))}
+      {/* Grupo unificado Mama — al final */}
+      {serviciosMama.length > 0 && renderGrupo('vencimientos_mama', serviciosMama)}
 
       {filtrados.length === 0 && (
         <div className="empty-state">
