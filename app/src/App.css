@@ -664,6 +664,20 @@ body {
   justify-content: space-between;
 }
 
+.category-group-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 2px solid;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0;
+  transition: background 0.15s;
+}
+.category-group-toggle:hover {
+  background: var(--gray-100);
+}
+
 .category-count {
   background: var(--gray-200);
   color: var(--gray-600);

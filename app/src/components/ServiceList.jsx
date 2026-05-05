@@ -20,6 +20,11 @@ export default function ServiceList({
   const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
   const [mostrarOcultos, setMostrarOcultos] = useState(false);
   const [mamaExpandido, setMamaExpandido] = useState(true);
+  const [grupoExpandido, setGrupoExpandido] = useState(null);
+
+  function toggleGrupo(catKey) {
+    setGrupoExpandido(prev => prev === catKey ? null : catKey);
+  }
 
   const serviciosPropios = useMemo(() =>
     servicios.filter(s => !ES_MAMA(s.nombre)), [servicios]);
@@ -145,13 +150,30 @@ export default function ServiceList({
       {/* —— Lista principal por categoría —— */}
       {Object.entries(porCategoria).map(([catKey, items]) => {
         const cat = CATEGORIAS[catKey] || CATEGORIAS.otros;
+        const abierto = grupoExpandido === catKey;
+        const pendientesGrupo = items.reduce((acc, s) =>
+          acc + (s.vencimientos || []).filter(v => !v.pagado && v.estado !== 'S' && (v.fecha || v.fechaVencimiento)).length, 0);
         return (
           <div key={catKey} className="category-group">
-            <h3 className="category-group-title" style={{ borderColor: cat.color }}>
-              <span style={{ color: cat.color }}>{cat.emoji} {cat.label}</span>
-              <span className="category-count">{items.length}</span>
-            </h3>
-            {items.map(serv => (
+            <button
+              className="category-group-title category-group-toggle"
+              style={{ borderColor: cat.color }}
+              onClick={() => toggleGrupo(catKey)}
+            >
+              <span style={{ color: cat.color }}>
+                {cat.emoji} {cat.label}
+                {pendientesGrupo > 0 && (
+                  <span className="mama-badge" style={{ marginLeft: 8 }}>
+                    {pendientesGrupo} pendiente{pendientesGrupo !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="category-count">{items.length}</span>
+                <span className="mama-toggle">{abierto ? '▲' : '▼'}</span>
+              </span>
+            </button>
+            {abierto && items.map(serv => (
               <ServiceCard key={serv.id || serv.nombre} servicio={serv} {...cardProps} />
             ))}
           </div>
