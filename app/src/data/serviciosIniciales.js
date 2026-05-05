@@ -14,6 +14,7 @@ export const CATEGORIAS = {
   servicios_mama: { label: 'Servicios mama', color: '#14B8A6', emoji: '👵' },
   salud_mama: { label: 'Salud mama', color: '#06B6D4', emoji: '💊' },
   impuestos_mama: { label: 'Impuestos mama', color: '#F97316', emoji: '📄' },
+  vencimientos_mama: { label: 'Vencimientos Mama', color: '#14B8A6', emoji: '👵' },
   otros: { label: 'Otros', color: '#94A3B8', emoji: '📌' },
 };
 
