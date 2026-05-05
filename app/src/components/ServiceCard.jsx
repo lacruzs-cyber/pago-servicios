@@ -217,6 +217,15 @@ export default function ServiceCard({
                     {v.mes && <span className="venc-notas">{v.mes} {v.anio}</span>}
                     {v.fechaPago && <span className="venc-notas">el {formatFecha(v.fechaPago)}</span>}
                   </div>
+                  <div className="venc-item-actions">
+                    {!v.esExcel && (
+                      <button className="btn btn-danger btn-xs"
+                        onClick={() => onEliminarVencimiento(sid, v.id)}
+                        title="Eliminar">
+                        🗑
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
