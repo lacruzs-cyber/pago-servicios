@@ -886,6 +886,12 @@ body {
   margin-top: 2px;
 }
 
+.col-monto-ref-txt {
+  color: var(--gray-400);
+  font-style: italic;
+  font-weight: 400;
+}
+
 .estado-badge.estado-multiple {
   background: #FEF3C7;
   color: #92400E;
