@@ -155,13 +155,6 @@ export default function ServiceCard({
             </div>
           )}
 
-          {servicio.diaEstimado && estimado && (
-            <div className="estimacion-banner">
-              📊 Vence aprox. el día <strong>{servicio.diaEstimado}</strong> de cada mes
-              — próxima: <strong>{formatFecha(estimado)}</strong>
-            </div>
-          )}
-
           {/* Pendientes */}
           {pendientes.length > 0 && (
             <div className="venc-section">

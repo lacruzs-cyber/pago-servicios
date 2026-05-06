@@ -63,6 +63,15 @@ INSERT INTO servicios (nombre, categoria, dia_estimado, es_mama, notas) VALUES
   ('ARBA MAMA',            'impuestos_mama',  10,   true,  '')
 ON CONFLICT (nombre) DO NOTHING;
 
+-- ── Migración: permite_multiples_pagos ──────────────
+ALTER TABLE servicios ADD COLUMN IF NOT EXISTS permite_multiples_pagos BOOLEAN DEFAULT false;
+
+INSERT INTO servicios (nombre, categoria, permite_multiples_pagos, notas) VALUES
+  ('NORA',   'otros', true, 'Personal - múltiples pagos por mes'),
+  ('ROSANA', 'otros', true, 'Personal - múltiples pagos por mes'),
+  ('MARIEL', 'otros', true, 'Personal - múltiples pagos por mes')
+ON CONFLICT (nombre) DO UPDATE SET permite_multiples_pagos = true;
+
 -- ── Configuracion de la app ─────────────────────────
 CREATE TABLE IF NOT EXISTS app_settings (
   clave TEXT PRIMARY KEY,
