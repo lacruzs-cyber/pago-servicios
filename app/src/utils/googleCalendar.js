@@ -4,6 +4,8 @@
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 
+const KEY_GCAL_AUTH = 'gcal_autorizado';
+
 let tokenClient = null;
 let gapiInited = false;
 let gisInited = false;
@@ -43,7 +45,22 @@ export function initGoogleAPI(clientId, onReady) {
 }
 
 function maybeReady() {
-  if (gapiInited && gisInited && onReadyCallback) {
+  if (!gapiInited || !gisInited || !onReadyCallback) return;
+
+  // Si el usuario ya autorizó antes, intentar reconectar silenciosamente
+  if (localStorage.getItem(KEY_GCAL_AUTH) === '1') {
+    tokenClient.callback = (resp) => {
+      if (!resp.error) {
+        onReadyCallback();
+      } else {
+        // No se pudo reconectar en silencio (sesión de Google expirada)
+        localStorage.removeItem(KEY_GCAL_AUTH);
+        onReadyCallback();
+      }
+    };
+    // prompt: '' = sin popup si el usuario ya tiene sesión activa en Google
+    tokenClient.requestAccessToken({ prompt: '' });
+  } else {
     onReadyCallback();
   }
 }
@@ -63,6 +80,7 @@ export function signIn() {
         reject(resp);
         return;
       }
+      localStorage.setItem(KEY_GCAL_AUTH, '1');
       resolve(true);
     };
     if (window.gapi.client.getToken() === null) {
@@ -79,6 +97,7 @@ export function signOut() {
     window.google.accounts.oauth2.revoke(token.access_token, () => {});
     window.gapi.client.setToken('');
   }
+  localStorage.removeItem(KEY_GCAL_AUTH);
 }
 
 export async function createCalendarEvent(servicio, fechaVencimiento, monto, notas) {
