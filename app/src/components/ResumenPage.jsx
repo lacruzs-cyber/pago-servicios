@@ -97,9 +97,10 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
 
   const pendCount    = filas.filter(f => ORDEN[f.estado.clase] <= 4).length;
   const vencidoCount = filas.filter(f => f.estado.clase === 'estado-vencido').length;
+  // Solo suma montos explícitamente cargados en vencimientos del mes
   const montoEstimado = filas
     .filter(f => f.estado.clase !== 'estado-pagado' && f.estado.clase !== 'estado-multiple')
-    .reduce((sum, { s, proximo }) => sum + (proximo?.monto || s.ultimoMonto || 0), 0);
+    .reduce((sum, { proximo }) => sum + (proximo?.monto || 0), 0);
 
   const diaTexto = DIAS_ES[ahora.getDay()] + ' ' + ahora.getDate() +
     ' de ' + MESES_LARGOS[ahora.getMonth()] + ' de ' + ahora.getFullYear();
@@ -143,7 +144,11 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
           </thead>
           <tbody>
             {filas.map(({ s, estado, proximo }) => {
-              const montoRef = proximo?.monto || s.ultimoMonto;
+              // Solo mostrar monto cargado en el vencimiento actual.
+              // ultimoMonto solo como referencia si hay vencimiento sin monto.
+              const montoExplicito = proximo?.monto != null ? proximo.monto : null;
+              const montoRef = montoExplicito ?? (proximo && s.ultimoMonto ? s.ultimoMonto : null);
+              const esMontoRef = montoExplicito == null && montoRef != null;
               const esMultiple = estado.esMultiple;
               const tieneMontoConocido = proximo?.monto != null;
               const ultimoPagoMes = esMultiple && estado.pagosEsteMes?.length > 0
@@ -171,7 +176,11 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       ? fmtFecha(ultimoPagoMes?.fechaPago || ultimoPagoMes?.fechaVencimiento)
                       : fmtFecha(proximo?.fechaVencimiento)}
                   </td>
-                  <td className="col-monto-cell">{fmtMonto(montoRef)}</td>
+                  <td className="col-monto-cell">
+                    {montoRef != null
+                      ? <span className={esMontoRef ? 'col-monto-ref-txt' : ''}>{fmtMonto(montoRef)}</span>
+                      : '-'}
+                  </td>
                   <td>
                     {esMultiple ? (
                       <button className="btn btn-xs btn-outline"
