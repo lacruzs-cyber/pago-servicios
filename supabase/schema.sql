@@ -63,7 +63,19 @@ INSERT INTO servicios (nombre, categoria, dia_estimado, es_mama, notas) VALUES
   ('ARBA MAMA',            'impuestos_mama',  10,   true,  '')
 ON CONFLICT (nombre) DO NOTHING;
 
+-- ── Configuracion de la app ─────────────────────────
+CREATE TABLE IF NOT EXISTS app_settings (
+  clave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL
+);
+-- Contraseña de acceso (cambiar en produccion via variable APP_PASSWORD en backend)
+INSERT INTO app_settings (clave, valor)
+  VALUES ('app_password', 'radiohead')
+  ON CONFLICT (clave) DO NOTHING;
+
 -- ── Nota ────────────────────────────────────────────
 -- Los vencimientos se cargan ejecutando:
 --   cd supabase && node migrate-excel.js
 -- Ese script lee gastos 2026.xlsx e inserta todas las filas.
+-- La contraseña de la app se puede sobreescribir con la variable de entorno
+-- APP_PASSWORD en el backend (backend/.env).

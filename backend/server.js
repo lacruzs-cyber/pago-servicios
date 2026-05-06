@@ -214,6 +214,17 @@ app.delete('/api/servicios/:nombre', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/auth/login
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+  const expected = process.env.APP_PASSWORD || 'radiohead';
+  if (password === expected) {
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ error: 'Contrasena incorrecta' });
+  }
+});
+
 // Servir frontend en produccion
 if (process.env.NODE_ENV === 'production') {
   const distDir = path.join(__dirname, '..', 'app', 'dist');
