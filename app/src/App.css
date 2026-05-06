@@ -853,6 +853,44 @@ body {
 /* ── Resumen Page ── */
 .resumen-page { display: flex; flex-direction: column; gap: 20px; }
 
+.resumen-encabezado {
+  background: white;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--gray-200);
+  padding: 14px 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resumen-fecha-hoy {
+  font-size: 15px;
+  color: var(--gray-700);
+}
+
+.resumen-monto-est {
+  font-size: 14px;
+  color: #166534;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: inline-block;
+}
+
+.resumen-pagos-total {
+  font-size: 11px;
+  color: #166534;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.estado-badge.estado-multiple {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
 .resumen-stats {
   display: flex;
   gap: 16px;

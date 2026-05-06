@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import LoginPage from './components/LoginPage';
 import ResumenPage from './components/ResumenPage';
-import Dashboard from './components/Dashboard';
 import ServiceList from './components/ServiceList';
 import ServiceForm from './components/ServiceForm';
 import VencimientoForm from './components/VencimientoForm';
@@ -192,13 +191,19 @@ export default function App() {
     const servicio = modalRegistroPago;
     const vencId   = modalRegistroPago._vencimientoId;
     try {
-      if (vencId) {
+      // Servicios con múltiples pagos por mes (NORA, ROSANA, MARIEL): siempre crear nuevo
+      if (servicio.permiteMultiplesPagos || modalRegistroPago._multipago) {
+        await apiPost(API + '/vencimientos', {
+          servicioNombre: servicio.nombre,
+          fecha: datos.fecha, monto: datos.monto || null,
+          notas: datos.notas || null, pagado: true, fechaPago: datos.fecha,
+        });
+      } else if (vencId) {
         await apiPatch(API + '/vencimientos/pagar', {
           id: vencId, fechaPago: datos.fecha, monto: datos.monto ?? null,
         });
       } else {
         const mesPrefix = datos.fecha.slice(0, 7);
-        // Buscar cualquier vencimiento pendiente del mes (auto-generado o del Excel)
         const pendienteMes = (servicio.vencimientos || []).find(v =>
           v.estado !== 'S' && (v.fechaVencimiento || '').startsWith(mesPrefix)
         );
@@ -214,7 +219,7 @@ export default function App() {
           });
         }
       }
-      mostrarToast('✅ Pago registrado' + (datos.monto ? ' — $' + datos.monto.toLocaleString('es-AR', { maximumFractionDigits: 0 }) : ''));
+      mostrarToast('✅ Pago registrado' + (datos.monto ? ' — $' + Number(datos.monto).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : ''));
       await cargarDatos();
     } catch (err) {
       mostrarToast('Error al registrar: ' + err.message, 'error');
@@ -383,13 +388,6 @@ export default function App() {
           Inicio
         </button>
         <button
-          className={tab === 'dashboard' ? 'tab-btn tab-active' : 'tab-btn'}
-          onClick={() => setTab('dashboard')}
-        >
-          Proximos vencimientos
-          {urgentesCount > 0 && <span className='tab-badge'>{urgentesCount}</span>}
-        </button>
-        <button
           className={tab === 'servicios' ? 'tab-btn tab-active' : 'tab-btn'}
           onClick={() => setTab('servicios')}
         >
@@ -415,13 +413,6 @@ export default function App() {
             servicios={serviciosVisibles}
             onMarcarPagado={handleMarcarPagado}
             onRegistrarPago={s => setModalRegistroPago(s)}
-            onAgregarVencimiento={s => setModalVencimiento(s)}
-          />
-        )}
-        {!cargando && tab === 'dashboard' && (
-          <Dashboard
-            servicios={serviciosVisibles}
-            onMarcarPagado={handleMarcarPagado}
             onAgregarVencimiento={s => setModalVencimiento(s)}
           />
         )}

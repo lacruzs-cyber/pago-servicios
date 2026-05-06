@@ -57,15 +57,16 @@ app.get('/api/servicios', async (req, res) => {
         : null;
 
       return {
-        nombre:             s.nombre,
-        categoria:          s.categoria,
-        diaEstimado:        s.dia_estimado,
-        esMama:             s.es_mama,
-        notas:              s.notas || '',
-        vencimientos:       venc,
-        proximoVencimiento: proximo,
-        ultimoMonto:        pagados[0]?.monto ?? null,
-        tienePendientes:    pendientes.length > 0,
+        nombre:                 s.nombre,
+        categoria:              s.categoria,
+        diaEstimado:            s.dia_estimado,
+        esMama:                 s.es_mama,
+        permiteMultiplesPagos: s.permite_multiples_pagos || false,
+        notas:                  s.notas || '',
+        vencimientos:           venc,
+        proximoVencimiento:     proximo,
+        ultimoMonto:            pagados[0]?.monto ?? null,
+        tienePendientes:        pendientes.length > 0,
       };
     });
 
