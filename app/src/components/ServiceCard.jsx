@@ -23,6 +23,7 @@ export default function ServiceCard({
   onMarcarPagado,
   onEliminarVencimiento,
   onEditarServicio,
+  onEliminarServicio,
   onRegistrarPago,
   onOcultarServicio,
   esOculto = false,
@@ -240,6 +241,11 @@ export default function ServiceCard({
             >
               {esOculto ? '👁️ Restaurar servicio' : '👁️ Ocultar servicio'}
             </button>
+            {onEliminarServicio && (
+              <button className="btn btn-danger btn-sm" onClick={() => onEliminarServicio(sid)}>
+                🗑️ Eliminar servicio
+              </button>
+            )}
           </div>
         </div>
       )}

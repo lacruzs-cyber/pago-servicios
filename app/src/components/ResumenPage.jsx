@@ -73,7 +73,7 @@ function fmtMonto(m) {
   return '$' + Number(m).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento, onEliminarServicio }) {
+export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento }) {
   const ahora = new Date();
   const mesActual = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
 
@@ -140,7 +140,6 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
               <th>Vencimiento</th>
               <th>Monto</th>
               <th>Acción</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -206,13 +205,6 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                         Registrar pago
                       </button>
                     )}
-                  </td>
-                  <td>
-                    <button className="btn btn-xs btn-danger"
-                      title="Eliminar servicio"
-                      onClick={() => onEliminarServicio && onEliminarServicio(s.nombre)}>
-                      🗑
-                    </button>
                   </td>
                 </tr>
               );
