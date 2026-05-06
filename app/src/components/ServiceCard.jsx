@@ -235,12 +235,6 @@ export default function ServiceCard({
             <button className="btn btn-outline btn-sm" onClick={() => onEditarServicio(servicio)}>
               ✏️ Editar
             </button>
-            <button
-              className={esOculto ? 'btn btn-primary btn-sm' : 'btn btn-warning btn-sm'}
-              onClick={() => onOcultarServicio(sid)}
-            >
-              {esOculto ? '👁️ Restaurar servicio' : '👁️ Ocultar servicio'}
-            </button>
             {onEliminarServicio && (
               <button className="btn btn-danger btn-sm" onClick={() => onEliminarServicio(sid)}>
                 🗑️ Eliminar servicio
