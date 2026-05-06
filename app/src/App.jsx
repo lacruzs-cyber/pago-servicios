@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import LoginPage from './components/LoginPage';
+import ResumenPage from './components/ResumenPage';
 import Dashboard from './components/Dashboard';
 import ServiceList from './components/ServiceList';
 import ServiceForm from './components/ServiceForm';
@@ -71,11 +73,12 @@ async function autoGenerarMama(serviciosAPI) {
 }
 
 export default function App() {
+  const [autenticado, setAutenticado]             = useState(() => sessionStorage.getItem('pagos_auth') === '1');
   const [servicios, setServicios]                 = useState([]);
   const [ocultos,   setOcultos]                   = useState([]);
   const [cargando,  setCargando]                  = useState(true);
   const [errorAPI,  setErrorAPI]                  = useState(null);
-  const [tab,       setTab]                       = useState('dashboard');
+  const [tab,       setTab]                       = useState('resumen');
   const [googleReady,      setGoogleReady]        = useState(false);
   const [googleConectado,  setGoogleConectado]    = useState(false);
   const [modalServicio,    setModalServicio]      = useState(null);
@@ -302,6 +305,10 @@ export default function App() {
     mostrarToast('Configuracion guardada');
   }
 
+  if (!autenticado) {
+    return <LoginPage onLogin={() => setAutenticado(true)} />;
+  }
+
   const serviciosVisibles    = servicios.filter(s => !ocultos.includes(s.nombre || s.id));
   const serviciosOcultosList = servicios.filter(s =>  ocultos.includes(s.nombre || s.id));
 
@@ -352,6 +359,12 @@ export default function App() {
 
       <nav className='app-tabs'>
         <button
+          className={tab === 'resumen' ? 'tab-btn tab-active' : 'tab-btn'}
+          onClick={() => setTab('resumen')}
+        >
+          Inicio
+        </button>
+        <button
           className={tab === 'dashboard' ? 'tab-btn tab-active' : 'tab-btn'}
           onClick={() => setTab('dashboard')}
         >
@@ -378,6 +391,14 @@ export default function App() {
             ⚠️ {errorAPI}
             <button className='btn btn-sm btn-outline' onClick={cargarDatos}>Reintentar</button>
           </div>
+        )}
+        {!cargando && tab === 'resumen' && (
+          <ResumenPage
+            servicios={serviciosVisibles}
+            onMarcarPagado={handleMarcarPagado}
+            onRegistrarPago={s => setModalRegistroPago(s)}
+            onAgregarVencimiento={s => setModalVencimiento(s)}
+          />
         )}
         {!cargando && tab === 'dashboard' && (
           <Dashboard
