@@ -112,10 +112,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const cfg = cargarConfig();
-    setConfig(cfg);
-    setOcultos(cargarOcultos());
-    cargarDatos();
+    async function inicializar() {
+      let cfg = cargarConfig();
+      // Si no hay clientId en localStorage, intentar cargarlo desde Supabase
+      if (!cfg.googleClientId) {
+        try {
+          const r = await fetch(API + '/config');
+          if (r.ok) {
+            const remoto = await r.json();
+            if (remoto.googleClientId) {
+              cfg = { ...cfg, googleClientId: remoto.googleClientId };
+              guardarConfig(cfg);
+            }
+          }
+        } catch {}
+      }
+      setConfig(cfg);
+      setOcultos(cargarOcultos());
+      cargarDatos();
+    }
+    inicializar();
   }, [cargarDatos]);
 
   useEffect(() => {
@@ -298,9 +314,11 @@ export default function App() {
   function handleSignOut() {
     signOut(); setGoogleConectado(false); mostrarToast('Desconectado de Google Calendar');
   }
-  function handleGuardarConfig(clientId) {
+  async function handleGuardarConfig(clientId) {
     const cfg = { ...config, googleClientId: clientId };
     setConfig(cfg); guardarConfig(cfg); setModalConfig(false);
+    // Guardar también en Supabase para persistir entre dispositivos y limpiezas de localStorage
+    try { await fetch(API + '/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ googleClientId: clientId }) }); } catch {}
     initGoogleAPI(clientId, () => { setGoogleReady(true); setGoogleConectado(isSignedIn()); });
     mostrarToast('Configuracion guardada');
   }

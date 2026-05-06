@@ -214,6 +214,30 @@ app.delete('/api/servicios/:nombre', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/config — lee configuración de app_settings
+app.get('/api/config', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('app_settings').select('clave, valor');
+    if (error) throw error;
+    const map = {};
+    for (const row of (data || [])) map[row.clave] = row.valor;
+    res.json({ googleClientId: map['google_client_id'] || null });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/config — guarda googleClientId en app_settings
+app.patch('/api/config', async (req, res) => {
+  try {
+    const { googleClientId } = req.body;
+    if (googleClientId !== undefined) {
+      const { error } = await supabase.from('app_settings')
+        .upsert({ clave: 'google_client_id', valor: googleClientId || '' }, { onConflict: 'clave' });
+      if (error) throw error;
+    }
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/auth/login
 app.post('/api/auth/login', (req, res) => {
   const { password } = req.body;
