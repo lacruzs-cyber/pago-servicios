@@ -414,7 +414,6 @@ export default function App() {
             onMarcarPagado={handleMarcarPagado}
             onRegistrarPago={s => setModalRegistroPago(s)}
             onAgregarVencimiento={s => setModalVencimiento(s)}
-            onEliminarServicio={handleEliminarServicio}
           />
         )}
         {!cargando && tab === 'servicios' && (
@@ -426,6 +425,7 @@ export default function App() {
             onMarcarPagado={handleMarcarPagado}
             onEliminarVencimiento={handleEliminarVencimiento}
             onEditarServicio={s => setModalServicio(s)}
+            onEliminarServicio={handleEliminarServicio}
             onOcultarServicio={handleOcultarServicio}
             onMostrarServicio={handleMostrarServicio}
             onRegistrarPago={s => setModalRegistroPago(s)}
