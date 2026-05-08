@@ -13,6 +13,9 @@ import './App.css';
 // Dev: proxy a localhost:3001  |  Android APK: URL completa del backend en Render
 const API = (import.meta.env.VITE_API_URL || '') + '/api';
 
+// Client ID de Google Calendar — hardcodeado para no requerir configuración manual
+const DEFAULT_GCAL_CLIENT_ID = '987611899031-7d8qbnul2e7u5mah6isvlt9mrii1c4al.apps.googleusercontent.com';
+
 async function apiPost(url, body) {
   const r = await fetch(url, {
     method: 'POST',
@@ -113,17 +116,17 @@ export default function App() {
   useEffect(() => {
     async function inicializar() {
       let cfg = cargarConfig();
-      // Si no hay clientId en localStorage, intentar cargarlo desde Supabase
+      // Usar Client ID hardcodeado como fallback — siempre disponible sin configuración
       if (!cfg.googleClientId) {
+        cfg = { ...cfg, googleClientId: DEFAULT_GCAL_CLIENT_ID };
+        guardarConfig(cfg);
+        // También persistir en Supabase si no estaba guardado
         try {
-          const r = await fetch(API + '/config');
-          if (r.ok) {
-            const remoto = await r.json();
-            if (remoto.googleClientId) {
-              cfg = { ...cfg, googleClientId: remoto.googleClientId };
-              guardarConfig(cfg);
-            }
-          }
+          await fetch(API + '/config', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ googleClientId: DEFAULT_GCAL_CLIENT_ID }),
+          });
         } catch {}
       }
       setConfig(cfg);
