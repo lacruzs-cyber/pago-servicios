@@ -547,7 +547,7 @@ body {
 .badge-sin-vencimiento { background: var(--gray-100); color: var(--gray-400); }
 
 /* ── Dashboard ── */
-.dashboard { display: flex; flex-direction: column; gap: 24px; }
+.dashboard { display: flex; flex-direction: column; gap: 28px; }
 
 .dashboard-summary {
   display: flex;
@@ -598,22 +598,22 @@ body {
 
 .dash-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
 .dash-card {
   background: white;
   border-radius: var(--radius);
-  border: 2px solid var(--gray-300);
-  padding: 14px;
-  box-shadow: var(--shadow);
+  border: 2px solid var(--gray-400);
+  padding: 18px;
+  box-shadow: var(--shadow-md);
   transition: box-shadow .15s;
 }
 
-.dash-card:hover { box-shadow: var(--shadow-md); }
-.dash-card-vencido { border-color: #BF616A; background: #FFF5F5; }
-.dash-card-urgente { border-color: #EBCB8B; background: #FFFBF5; }
+.dash-card:hover { box-shadow: var(--shadow-lg); }
+.dash-card-vencido { border-color: #BF616A; background: #FFF5F5; border-width: 3px; }
+.dash-card-urgente { border-color: #D08770; background: #FFFBF5; border-width: 3px; }
 
 .dash-card-top {
   display: flex;
@@ -780,5 +780,3 @@ body {
 
   /* Modal full-screen en mobile */
   .modal-overlay { padding: 0; align-items: flex-end; }
-  .modal-box {
-    border-radius: 16px 16
