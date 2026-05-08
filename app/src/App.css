@@ -605,15 +605,15 @@ body {
 .dash-card {
   background: white;
   border-radius: var(--radius);
-  border: 1.5px solid var(--gray-200);
+  border: 2px solid var(--gray-300);
   padding: 14px;
   box-shadow: var(--shadow);
   transition: box-shadow .15s;
 }
 
 .dash-card:hover { box-shadow: var(--shadow-md); }
-.dash-card-vencido { border-color: #FECACA; background: #FFF5F5; }
-.dash-card-urgente { border-color: #FED7AA; background: #FFFBF5; }
+.dash-card-vencido { border-color: #BF616A; background: #FFF5F5; }
+.dash-card-urgente { border-color: #EBCB8B; background: #FFFBF5; }
 
 .dash-card-top {
   display: flex;
@@ -724,8 +724,8 @@ body {
   .summary-stat { flex: 1; min-width: 120px; }
 }
 
-/* ── Mobile (≤ 480px) ── */
-@media (max-width: 480px) {
+/* ── Mobile (≤ 640px) ── */
+@media (max-width: 640px) {
 
   /* Header */
   .app-header { padding: 10px 14px; gap: 8px; }
@@ -781,4 +781,4 @@ body {
   /* Modal full-screen en mobile */
   .modal-overlay { padding: 0; align-items: flex-end; }
   .modal-box {
-    border-radius: 16px 
+    border-radius: 16px 16
