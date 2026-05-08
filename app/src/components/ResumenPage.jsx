@@ -97,7 +97,6 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
 
   const pendCount    = filas.filter(f => ORDEN[f.estado.clase] <= 4).length;
   const vencidoCount = filas.filter(f => f.estado.clase === 'estado-vencido').length;
-  // Solo suma montos explícitamente cargados en vencimientos del mes
   const montoEstimado = filas
     .filter(f => f.estado.clase !== 'estado-pagado' && f.estado.clase !== 'estado-multiple')
     .reduce((sum, { proximo }) => sum + (proximo?.monto || 0), 0);
@@ -131,6 +130,14 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
         </div>
       </div>
 
+      <div className="resumen-leyenda">
+        <span className="leyenda-item"><span className="leyenda-icon">📅</span> Cargar vencimiento</span>
+        <span className="leyenda-sep">|</span>
+        <span className="leyenda-item"><span className="leyenda-icon">💰</span> Registrar pago</span>
+        <span className="leyenda-sep">|</span>
+        <span className="leyenda-item"><span className="leyenda-icon">✅</span> Marcar como pagado</span>
+      </div>
+
       <div className="resumen-table-wrap">
         <table className="resumen-table">
           <thead>
@@ -139,13 +146,11 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
               <th>Servicio</th>
               <th>Vencimiento</th>
               <th>Monto</th>
-              <th>Acción</th>
+              <th className="col-acciones-th">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {filas.map(({ s, estado, proximo }) => {
-              // Solo mostrar monto cargado en el vencimiento actual.
-              // ultimoMonto solo como referencia si hay vencimiento sin monto.
               const montoExplicito = proximo?.monto != null ? proximo.monto : null;
               const montoRef = montoExplicito ?? (proximo && s.ultimoMonto ? s.ultimoMonto : null);
               const esMontoRef = montoExplicito == null && montoRef != null;
@@ -154,6 +159,14 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
               const ultimoPagoMes = esMultiple && estado.pagosEsteMes?.length > 0
                 ? estado.pagosEsteMes[estado.pagosEsteMes.length - 1]
                 : null;
+
+              const argsPago = esMultiple
+                ? { ...s, _multipago: true }
+                : proximo
+                  ? { ...s, _vencimientoId: proximo.id, _fechaVenc: proximo.fechaVencimiento }
+                  : s;
+
+              const puedeMarcar = !esMultiple && tieneMontoConocido;
 
               return (
                 <tr key={s.nombre} className={'resumen-row ' + estado.clase}>
@@ -181,30 +194,23 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       ? <span className={esMontoRef ? 'col-monto-ref-txt' : ''}>{fmtMonto(montoRef)}</span>
                       : '-'}
                   </td>
-                  <td>
-                    {esMultiple ? (
-                      <button className="btn btn-xs btn-outline"
-                        onClick={() => onRegistrarPago({ ...s, _multipago: true })}>
-                        + Agregar pago
-                      </button>
-                    ) : proximo ? (
-                      tieneMontoConocido ? (
-                        <button className="btn btn-xs btn-success"
-                          onClick={() => onMarcarPagado(s.nombre, proximo.id)}>
-                          Marcar como pagado
-                        </button>
-                      ) : (
-                        <button className="btn btn-xs btn-outline"
-                          onClick={() => onRegistrarPago({ ...s, _vencimientoId: proximo.id, _fechaVenc: proximo.fechaVencimiento })}>
-                          Registrar pago
-                        </button>
-                      )
-                    ) : (
-                      <button className="btn btn-xs btn-outline"
-                        onClick={() => onRegistrarPago(s)}>
-                        Registrar pago
-                      </button>
-                    )}
+                  <td className="col-acciones-cell">
+                    <button
+                      className="btn-icono btn-icono-cargar"
+                      title="Cargar vencimiento"
+                      onClick={() => onAgregarVencimiento(s)}
+                    >📅</button>
+                    <button
+                      className="btn-icono btn-icono-pago"
+                      title="Registrar pago"
+                      onClick={() => onRegistrarPago(argsPago)}
+                    >💰</button>
+                    <button
+                      className={'btn-icono btn-icono-ok' + (puedeMarcar ? '' : ' btn-icono-disabled')}
+                      title="Marcar como pagado"
+                      disabled={!puedeMarcar}
+                      onClick={() => puedeMarcar && onMarcarPagado(s.nombre, proximo.id)}
+                    >✅</button>
                   </td>
                 </tr>
               );
