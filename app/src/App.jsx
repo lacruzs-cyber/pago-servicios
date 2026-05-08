@@ -432,4 +432,7 @@ export default function App() {
           onCerrar={() => setModalConfig(false)}
         />
       )}
-      {toast && <div className={'toast toas
+      {toast && <div className={'toast toast-' + toast.tipo}>{toast.mensaje}</div>}
+    </div>
+  );
+}
