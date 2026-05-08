@@ -281,6 +281,21 @@ const API = (import.meta.env.VITE_API_URL || '') + '/api';
 
 ---
 
+## Workflow GitHub — REGLA OBLIGATORIA
+
+**Los archivos locales son siempre la fuente de verdad.** Nunca usar los archivos del clone de GitHub para sobrescribir los locales.
+
+Para hacer commits automáticos:
+1. Leer token desde `.env` del proyecto (`GITHUB_TOKEN`)
+2. `rm -rf /tmp/pago-repo && git clone "https://${TOKEN}@github.com/lacruzs-cyber/pago-servicios.git" /tmp/pago-repo`
+3. Copiar SOLO los archivos modificados: `cp /local/archivo /tmp/pago-repo/archivo`
+4. Verificar con `tail -5` y `wc -l` que no estén truncados
+5. `git add ... && git commit -m "..." && git push --no-progress "https://${TOKEN}@..." main`
+
+Render redeploya automáticamente con cada push. No pedirle al usuario que haga nada manualmente.
+
+---
+
 ## Consideraciones técnicas importantes
 
 ### Escritura de archivos JSX en este entorno
