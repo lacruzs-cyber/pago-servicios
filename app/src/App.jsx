@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import LoginPage from './components/LoginPage';
-import ResumenPage from './components/ResumenPage';
+import Dashboard from './components/Dashboard';
 import ServiceList from './components/ServiceList';
 import ServiceForm from './components/ServiceForm';
 import VencimientoForm from './components/VencimientoForm';
@@ -72,12 +71,11 @@ async function autoGenerarMama(serviciosAPI) {
 }
 
 export default function App() {
-  const [autenticado, setAutenticado]             = useState(() => sessionStorage.getItem('pagos_auth') === '1');
   const [servicios, setServicios]                 = useState([]);
   const [ocultos,   setOcultos]                   = useState([]);
   const [cargando,  setCargando]                  = useState(true);
   const [errorAPI,  setErrorAPI]                  = useState(null);
-  const [tab,       setTab]                       = useState('resumen');
+  const [tab,       setTab]                       = useState('dashboard');
   const [googleReady,      setGoogleReady]        = useState(false);
   const [googleConectado,  setGoogleConectado]    = useState(false);
   const [modalServicio,    setModalServicio]      = useState(null);
@@ -111,26 +109,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    async function inicializar() {
-      let cfg = cargarConfig();
-      // Si no hay clientId en localStorage, intentar cargarlo desde Supabase
-      if (!cfg.googleClientId) {
-        try {
-          const r = await fetch(API + '/config');
-          if (r.ok) {
-            const remoto = await r.json();
-            if (remoto.googleClientId) {
-              cfg = { ...cfg, googleClientId: remoto.googleClientId };
-              guardarConfig(cfg);
-            }
-          }
-        } catch {}
-      }
-      setConfig(cfg);
-      setOcultos(cargarOcultos());
-      cargarDatos();
-    }
-    inicializar();
+    const cfg = cargarConfig();
+    setConfig(cfg);
+    setOcultos(cargarOcultos());
+    cargarDatos();
   }, [cargarDatos]);
 
   useEffect(() => {
@@ -191,19 +173,13 @@ export default function App() {
     const servicio = modalRegistroPago;
     const vencId   = modalRegistroPago._vencimientoId;
     try {
-      // Servicios con múltiples pagos por mes (NORA, ROSANA, MARIEL): siempre crear nuevo
-      if (servicio.permiteMultiplesPagos || modalRegistroPago._multipago) {
-        await apiPost(API + '/vencimientos', {
-          servicioNombre: servicio.nombre,
-          fecha: datos.fecha, monto: datos.monto || null,
-          notas: datos.notas || null, pagado: true, fechaPago: datos.fecha,
-        });
-      } else if (vencId) {
+      if (vencId) {
         await apiPatch(API + '/vencimientos/pagar', {
           id: vencId, fechaPago: datos.fecha, monto: datos.monto ?? null,
         });
       } else {
         const mesPrefix = datos.fecha.slice(0, 7);
+        // Buscar cualquier vencimiento pendiente del mes (auto-generado o del Excel)
         const pendienteMes = (servicio.vencimientos || []).find(v =>
           v.estado !== 'S' && (v.fechaVencimiento || '').startsWith(mesPrefix)
         );
@@ -219,7 +195,7 @@ export default function App() {
           });
         }
       }
-      mostrarToast('✅ Pago registrado' + (datos.monto ? ' — $' + Number(datos.monto).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : ''));
+      mostrarToast('✅ Pago registrado' + (datos.monto ? ' — $' + datos.monto.toLocaleString('es-AR', { maximumFractionDigits: 0 }) : ''));
       await cargarDatos();
     } catch (err) {
       mostrarToast('Error al registrar: ' + err.message, 'error');
@@ -319,17 +295,11 @@ export default function App() {
   function handleSignOut() {
     signOut(); setGoogleConectado(false); mostrarToast('Desconectado de Google Calendar');
   }
-  async function handleGuardarConfig(clientId) {
+  function handleGuardarConfig(clientId) {
     const cfg = { ...config, googleClientId: clientId };
     setConfig(cfg); guardarConfig(cfg); setModalConfig(false);
-    // Guardar también en Supabase para persistir entre dispositivos y limpiezas de localStorage
-    try { await fetch(API + '/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ googleClientId: clientId }) }); } catch {}
     initGoogleAPI(clientId, () => { setGoogleReady(true); setGoogleConectado(isSignedIn()); });
     mostrarToast('Configuracion guardada');
-  }
-
-  if (!autenticado) {
-    return <LoginPage onLogin={() => setAutenticado(true)} />;
   }
 
   const serviciosVisibles    = servicios.filter(s => !ocultos.includes(s.nombre || s.id));
@@ -382,10 +352,11 @@ export default function App() {
 
       <nav className='app-tabs'>
         <button
-          className={tab === 'resumen' ? 'tab-btn tab-active' : 'tab-btn'}
-          onClick={() => setTab('resumen')}
+          className={tab === 'dashboard' ? 'tab-btn tab-active' : 'tab-btn'}
+          onClick={() => setTab('dashboard')}
         >
-          Inicio
+          Proximos vencimientos
+          {urgentesCount > 0 && <span className='tab-badge'>{urgentesCount}</span>}
         </button>
         <button
           className={tab === 'servicios' ? 'tab-btn tab-active' : 'tab-btn'}
@@ -408,8 +379,8 @@ export default function App() {
             <button className='btn btn-sm btn-outline' onClick={cargarDatos}>Reintentar</button>
           </div>
         )}
-        {!cargando && tab === 'resumen' && (
-          <ResumenPage
+        {!cargando && tab === 'dashboard' && (
+          <Dashboard
             servicios={serviciosVisibles}
             onMarcarPagado={handleMarcarPagado}
             onRegistrarPago={s => setModalRegistroPago(s)}
@@ -425,7 +396,6 @@ export default function App() {
             onMarcarPagado={handleMarcarPagado}
             onEliminarVencimiento={handleEliminarVencimiento}
             onEditarServicio={s => setModalServicio(s)}
-            onEliminarServicio={handleEliminarServicio}
             onOcultarServicio={handleOcultarServicio}
             onMostrarServicio={handleMostrarServicio}
             onRegistrarPago={s => setModalRegistroPago(s)}
@@ -462,7 +432,4 @@ export default function App() {
           onCerrar={() => setModalConfig(false)}
         />
       )}
-      {toast && <div className={'toast toast-' + toast.tipo}>{toast.mensaje}</div>}
-    </div>
-  );
-}
+      {toast && <div className={'toast toas

@@ -12,7 +12,7 @@ function norm(v) {
   };
 }
 
-export default function Dashboard({ servicios, onMarcarPagado, onAgregarVencimiento }) {
+export default function Dashboard({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento }) {
 
   const items = useMemo(() => {
     const out = [];
@@ -60,17 +60,26 @@ export default function Dashboard({ servicios, onMarcarPagado, onAgregarVencimie
         </div>
         {v._coment && <div className="dash-notas">{v._coment}</div>}
         <div className="dash-actions">
-          <button
-            className="btn btn-success btn-sm"
-            onClick={() => onMarcarPagado(serv.id || serv.nombre, v.id)}
-          >
-            ✅ Marcar como pagado
-          </button>
+          {v._monto ? (
+            <button
+              className="btn btn-success btn-sm"
+              onClick={() => onMarcarPagado(serv.id || serv.nombre, v.id)}
+            >
+              ✅ Marcar como pagado
+            </button>
+          ) : (
+            <button
+              className="btn btn-success btn-sm"
+              onClick={() => onRegistrarPago({ ...serv, _vencimientoId: v.id, _fechaVenc: v._fecha })}
+            >
+              💰 Registrar pago
+            </button>
+          )}
           <button
             className="btn btn-outline btn-sm"
             onClick={() => onAgregarVencimiento(serv)}
           >
-            + Nuevo vencimiento
+            📅 Cargar vencimiento
           </button>
         </div>
       </div>
