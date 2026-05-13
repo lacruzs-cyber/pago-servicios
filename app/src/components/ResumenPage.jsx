@@ -166,7 +166,7 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                   ? { ...s, _vencimientoId: proximo.id, _fechaVenc: proximo.fechaVencimiento }
                   : s;
 
-              const puedeMarcar = !esMultiple && tieneMontoConocido;
+              const puedeMarcar = !esMultiple;
 
               return (
                 <tr key={s.nombre} className={'resumen-row ' + estado.clase}>
@@ -209,7 +209,7 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       className={'btn-icono btn-icono-ok' + (puedeMarcar ? '' : ' btn-icono-disabled')}
                       title="Marcar como pagado"
                       disabled={!puedeMarcar}
-                      onClick={() => puedeMarcar && onMarcarPagado(s.nombre, proximo.id)}
+                      onClick={() => proximo ? onMarcarPagado(s.nombre, proximo.id) : onRegistrarPago({ ...s, _modoMarcarPagado: true })}
                     >✅</button>
                   </td>
                 </tr>
