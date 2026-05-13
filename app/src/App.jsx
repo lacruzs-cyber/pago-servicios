@@ -74,6 +74,48 @@ async function autoGenerarMama(serviciosAPI) {
   localStorage.setItem(clave, '1');
 }
 
+// Auto-genera vencimientos de Aguinaldo en junio (dia 30) y diciembre (dia 31)
+async function autoGenerarAguinaldo(serviciosAPI) {
+  const hoy  = new Date();
+  const anio = hoy.getFullYear();
+  const mes  = hoy.getMonth() + 1; // 1-12
+
+  // Solo generar en junio (6) y diciembre (12)
+  if (mes !== 6 && mes !== 12) return;
+
+  const mesStr  = String(mes).padStart(2, '0');
+  const fechaVenc = mes === 6
+    ? anio + '-06-30'
+    : anio + '-12-31';
+  const clave = 'aguinaldo_gen_' + anio + '_' + mesStr;
+  if (localStorage.getItem(clave)) return;
+
+  const aguinaldo = serviciosAPI.filter(s =>
+    s.nombre.toUpperCase().includes('AGUINALDO')
+  );
+  if (!aguinaldo.length) { localStorage.setItem(clave, '1'); return; }
+
+  const prefix = anio + '-' + mesStr;
+  for (const serv of aguinaldo) {
+    const yaExiste = (serv.vencimientos || []).some(v =>
+      (v.fechaVencimiento || '').startsWith(prefix)
+    );
+    if (yaExiste) continue;
+    try {
+      await apiPost(API + '/vencimientos', {
+        servicioNombre: serv.nombre,
+        fecha:          fechaVenc,
+        monto:          null,
+        notas:          'Aguinaldo ' + (mes === 6 ? '1º semestre' : '2º semestre') + ' (auto-generado)',
+        esAutoGenerado: true,
+      });
+    } catch (e) {
+      console.warn('No se pudo auto-generar aguinaldo para', serv.nombre, e.message);
+    }
+  }
+  localStorage.setItem(clave, '1');
+}
+
 export default function App() {
   const [autenticado, setAutenticado]             = useState(() => sessionStorage.getItem('pagos_auth') === '1');
   const [servicios, setServicios]                 = useState([]);
@@ -103,6 +145,7 @@ export default function App() {
       if (!resp.ok) throw new Error('Error ' + resp.status);
       const serviciosAPI = await resp.json();
       await autoGenerarMama(serviciosAPI);
+      await autoGenerarAguinaldo(serviciosAPI);
       const resp2 = await fetch(API + '/servicios');
       const data = resp2.ok ? await resp2.json() : serviciosAPI;
       setServicios(data.map(s => ({ ...s, id: s.nombre })));
