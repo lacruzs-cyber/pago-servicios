@@ -133,8 +133,6 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
       <div className="resumen-leyenda">
         <span className="leyenda-item"><span className="leyenda-icon">📅</span> Cargar vencimiento</span>
         <span className="leyenda-sep">|</span>
-        <span className="leyenda-item"><span className="leyenda-icon">💰</span> Registrar pago</span>
-        <span className="leyenda-sep">|</span>
         <span className="leyenda-item"><span className="leyenda-icon">✅</span> Marcar como pagado</span>
       </div>
 
@@ -160,13 +158,6 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                 ? estado.pagosEsteMes[estado.pagosEsteMes.length - 1]
                 : null;
 
-              const argsPago = esMultiple
-                ? { ...s, _multipago: true }
-                : proximo
-                  ? { ...s, _vencimientoId: proximo.id, _fechaVenc: proximo.fechaVencimiento }
-                  : s;
-
-              const puedeMarcar = true;
 
               return (
                 <tr key={s.nombre} className={'resumen-row ' + estado.clase}>
@@ -200,16 +191,11 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       title="Cargar vencimiento"
                       onClick={() => onAgregarVencimiento(s)}
                     >📅</button>
+
                     <button
-                      className="btn-icono btn-icono-pago"
-                      title="Registrar pago"
-                      onClick={() => onRegistrarPago(argsPago)}
-                    >💰</button>
-                    <button
-                      className={'btn-icono btn-icono-ok' + (puedeMarcar ? '' : ' btn-icono-disabled')}
+                      className="btn-icono btn-icono-ok"
                       title="Marcar como pagado"
-                      disabled={!puedeMarcar}
-                      onClick={() => esMultiple ? onRegistrarPago({ ...s, _multipago: true }) : proximo ? onMarcarPagado(s.nombre, proximo.id) : onRegistrarPago({ ...s, _modoMarcarPagado: true })}
+                      onClick={() => onMarcarPagado(s, proximo?.id || null)}
                     >✅</button>
                   </td>
                 </tr>

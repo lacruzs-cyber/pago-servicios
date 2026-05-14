@@ -2,11 +2,17 @@ import { useState } from 'react';
 import Modal from './Modal';
 import { fechaHoy, estimarProximoVencimiento, formatFecha } from '../utils/dateUtils';
 
+function fechaHoyMas15() {
+  const d = new Date();
+  d.setDate(d.getDate() + 15);
+  return d.toISOString().split('T')[0];
+}
+
 export default function VencimientoForm({ servicio, onGuardar, onCerrar, modoRegistroPago = false }) {
   const fechaEstimada = estimarProximoVencimiento(servicio.diaEstimado);
 
   const [form, setForm] = useState({
-    fecha: modoRegistroPago ? fechaHoy() : (fechaEstimada || ''),
+    fecha: modoRegistroPago ? fechaHoy() : fechaHoyMas15(),
     monto: '',
     notas: '',
   });
@@ -25,7 +31,7 @@ export default function VencimientoForm({ servicio, onGuardar, onCerrar, modoReg
     }
     onGuardar({
       fecha: form.fecha,
-      monto: form.monto ? parseFloat(form.monto) : null,
+      monto: form.monto !== '' ? parseFloat(form.monto) : null,
       notas: form.notas.trim(),
       ...(modoRegistroPago ? { pagado: true, fechaPago: form.fecha } : {}),
     });

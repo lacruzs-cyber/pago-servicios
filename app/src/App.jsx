@@ -190,15 +190,26 @@ export default function App() {
 
   // -- Vencimientos --
 
-  async function handleMarcarPagado(servicioId, vencimientoId) {
+  async function handleMarcarPagado(servicio, vencimientoId) {
+    const hoy = fechaHoy();
+    const nombreServ = typeof servicio === 'string' ? servicio : servicio.nombre;
     try {
-      await apiPatch(API + '/vencimientos/pagar', { id: vencimientoId, fechaPago: fechaHoy() });
-      mostrarToast('✅ Marcado como pagado');
-      const serv = servicios.find(s => s.id === servicioId || s.nombre === servicioId);
-      const venc = serv?.vencimientos?.find(v => v.id === vencimientoId);
-      if (googleConectado && venc?.calendarEventId) {
-        try { await marcarEventoPagado(venc.calendarEventId, serv.nombre); } catch (e) {}
+      if (vencimientoId) {
+        await apiPatch(API + '/vencimientos/pagar', { id: vencimientoId, fechaPago: hoy });
+        const serv = servicios.find(s => s.nombre === nombreServ);
+        const venc = serv?.vencimientos?.find(v => v.id === vencimientoId);
+        if (googleConectado && venc?.calendarEventId) {
+          try { await marcarEventoPagado(venc.calendarEventId, nombreServ); } catch (e) {}
+        }
+      } else {
+        // Sin vencimiento pendiente: crear uno nuevo ya pagado con fecha de hoy
+        await apiPost(API + '/vencimientos', {
+          servicioNombre: nombreServ,
+          fecha: hoy, monto: null, notas: null,
+          pagado: true, fechaPago: hoy,
+        });
       }
+      mostrarToast('✅ Marcado como pagado');
       await cargarDatos();
     } catch (err) {
       mostrarToast('Error: ' + err.message, 'error');
@@ -222,7 +233,7 @@ export default function App() {
       await apiPost(API + '/vencimientos', {
         servicioNombre: servicio.nombre,
         fecha:  datos.fecha,
-        monto:  datos.monto || null,
+        monto:  datos.monto ?? null,
         notas:  datos.notas || null,
         calendarEventId,
       });
@@ -241,7 +252,7 @@ export default function App() {
       if (servicio.permiteMultiplesPagos || modalRegistroPago._multipago) {
         await apiPost(API + '/vencimientos', {
           servicioNombre: servicio.nombre,
-          fecha: datos.fecha, monto: datos.monto || null,
+          fecha: datos.fecha, monto: datos.monto ?? null,
           notas: datos.notas || null, pagado: true, fechaPago: datos.fecha,
         });
       } else if (vencId) {
@@ -260,7 +271,7 @@ export default function App() {
         } else {
           await apiPost(API + '/vencimientos', {
             servicioNombre: servicio.nombre,
-            fecha: datos.fecha, monto: datos.monto || null,
+            fecha: datos.fecha, monto: datos.monto ?? null,
             notas: datos.notas || null, pagado: true, fechaPago: datos.fecha,
           });
         }
