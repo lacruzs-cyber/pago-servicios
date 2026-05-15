@@ -199,7 +199,7 @@ export default function App() {
         const serv = servicios.find(s => s.nombre === nombreServ);
         const venc = serv?.vencimientos?.find(v => v.id === vencimientoId);
         if (googleConectado && venc?.calendarEventId) {
-          try { await marcarEventoPagado(venc.calendarEventId, nombreServ); } catch (e) {}
+          try { await eliminarCalendarEvent(venc.calendarEventId); } catch (e) {}
         }
       } else {
         // Sin vencimiento pendiente: crear uno nuevo ya pagado con fecha de hoy
