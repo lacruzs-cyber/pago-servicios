@@ -10,7 +10,7 @@ import { initGoogleAPI, signIn, signOut, isSignedIn, createCalendarEvent, marcar
 import { fechaHoy } from './utils/dateUtils';
 import './App.css';
 
-// Dev: proxy a localhost:3001  |  Android APK: URL completa del backend en Render
+// Dev: proxy a localhost:3001  |  Android APK: URL completa del backend en Railway
 const API = (import.meta.env.VITE_API_URL || '') + '/api';
 
 // Client ID de Google Calendar — hardcodeado para no requerir configuración manual

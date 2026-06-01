@@ -89,15 +89,15 @@ Abrir http://localhost:5173 y verificar que la app carga los datos desde Supabas
 
 ---
 
-## FASE 3 — Deploy en Render.com (gratis)
+## FASE 3 — Deploy en Railway (gratis)
 
 ### 3.1 Crear cuenta
 
-1. Ir a **https://render.com** → Sign Up (con GitHub recomendado)
+1. Ir a **https://railway.app** → Sign Up (con GitHub recomendado)
 
 ### 3.2 Subir el codigo a GitHub
 
-El proyecto necesita estar en un repositorio de GitHub para hacer deploy desde Render.
+El proyecto necesita estar en un repositorio de GitHub para hacer deploy desde Railway.
 
 ```bash
 # En la carpeta raiz del proyecto (Pago de Servicios/)
@@ -115,9 +115,9 @@ git push -u origin main
 
 > El .gitignore ya excluye los archivos .env y el Excel (datos sensibles).
 
-### 3.3 Crear el Web Service en Render
+### 3.3 Crear el Web Service en Railway
 
-1. En Render → **New** → **Web Service**
+1. En Railway → **New** → **Web Service**
 2. Conectar con GitHub → seleccionar el repositorio `pago-servicios`
 3. Configurar:
    - **Name**: `pago-servicios`
@@ -133,11 +133,11 @@ git push -u origin main
 5. Click **Create Web Service**
 
 El deploy tarda ~3-5 minutos. Al finalizar te da una URL tipo:
-`https://pago-servicios.onrender.com`
+`https://pago-servicios.onrailway.app`
 
 ### 3.4 Verificar el deploy
 
-Abrir en el navegador: `https://pago-servicios.onrender.com`
+Abrir en el navegador: `https://pago-servicios.onrailway.app`
 
 La app deberia cargar completamente. Si ves "Service unavailable", esperar 30 segundos
 (el free tier duerme despues de 15 min de inactividad).
@@ -156,10 +156,10 @@ Instalar con la configuracion por defecto (incluye Android SDK).
 Crear el archivo `app/.env.production` (copiar desde `.env.production.example`):
 
 ```
-VITE_API_URL=https://pago-servicios.onrender.com
+VITE_API_URL=https://pago-servicios.onrailway.app
 ```
 
-Reemplazar la URL con la real de tu deploy en Render.
+Reemplazar la URL con la real de tu deploy en Railway.
 
 ### 4.3 Buildear y sincronizar
 
@@ -221,13 +221,13 @@ cd supabase && node migrate-excel.js
 
 ## NOTAS IMPORTANTES
 
-- **Free tier de Render**: el backend duerme despues de 15 min sin trafico.
+- **Free tier de Railway**: el backend duerme despues de 15 min sin trafico.
   El primer request despues de dormir tarda ~30 segundos. Es normal.
 
 - **Supabase free tier**: 500 MB de base de datos, 2 GB de transferencia por mes.
   Mas que suficiente para uso personal.
 
-- **Actualizaciones**: cuando hagas cambios al codigo, hacer `git push` y Render
+- **Actualizaciones**: cuando hagas cambios al codigo, hacer `git push` y Railway
   redeploya automaticamente.
 
 - **APK nueva version**: cada vez que quieras actualizar la app en el celular,

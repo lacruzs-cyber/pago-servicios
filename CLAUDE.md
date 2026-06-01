@@ -6,7 +6,7 @@ Aplicación web + Android para administrar el vencimiento y pago de servicios de
 Stack: **React 19 + Vite** (frontend) + **Node.js/Express** (backend) + **Supabase PostgreSQL** (base de datos).  
 El backend lee/escribe datos en Supabase (reemplazó al Excel original con SheetJS).  
 La app puede instalarse como **APK Android** usando Capacitor.  
-El deploy se hace en **Render.com** (gratis).
+El deploy se hace en **Railway** (gratis).
 
 ---
 
@@ -46,7 +46,7 @@ Pago de Servicios/
 │   └── package.json
 ├── contexto/
 │   └── gastos 2026.xlsx        ← Planilla original (referencia, ya migrada a Supabase)
-├── render.yaml                 ← Configuración de deploy en Render.com
+├── render.yaml                 ← Config legacy Render (ya no se usa, deploy en Railway)
 ├── .gitignore                  ← Excluye .env, dist/, *.xlsx
 └── CLAUDE.md                   ← Este archivo
 ```
@@ -252,24 +252,25 @@ otros           → 📌 gris
 
 ## Deploy y Android
 
-### Render.com
+### Railway
+- URL: `https://pago-servicios-production.up.railway.app`
 - Build command: `cd app && npm install && npm run build && cd ../backend && npm install`
 - Start command: `cd backend && node server.js`
 - Variables de entorno: `NODE_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
 - El backend sirve el frontend estático en producción (no hace falta hosting separado)
-- Free tier: el servicio duerme a los 15 min sin tráfico, tarda ~30 seg en despertar
+- Free tier: $5 crédito/mes, el servicio NO duerme
 
 ### APK Android (Capacitor)
 - Proyecto Android en `app/android/` (generado con `npx cap add android`)
 - App ID: `com.pagodeservicios.app`
-- Para buildear: crear `app/.env.production` con `VITE_API_URL=https://TU-APP.onrender.com`
+- Para buildear: crear `app/.env.production` con `VITE_API_URL=https://pago-servicios-production.up.railway.app`
 - Comandos: `npm run build` → `npx cap sync android` → abrir en Android Studio → Build APK
 - Ver `INSTRUCCIONES_DEPLOY.md` para pasos completos
 
 ### API URL dinámica (frontend)
 ```js
 // Dev: proxy vite (/api → localhost:3001)
-// Android: URL completa del backend en Render
+// Android: URL completa del backend en Railway
 const API = (import.meta.env.VITE_API_URL || '') + '/api';
 ```
 
@@ -292,7 +293,7 @@ Para hacer commits automáticos:
 4. Verificar con `tail -5` y `wc -l` que no estén truncados
 5. `git add ... && git commit -m "..." && git push --no-progress "https://${TOKEN}@..." main`
 
-Render redeploya automáticamente con cada push. No pedirle al usuario que haga nada manualmente.
+Railway redeploya automáticamente con cada push. No pedirle al usuario que haga nada manualmente.
 
 ---
 
