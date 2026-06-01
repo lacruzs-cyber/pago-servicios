@@ -115,20 +115,6 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
         )}
       </div>
 
-      <div className="resumen-stats">
-        <div className={'resumen-stat' + (vencidoCount ? ' resumen-stat-alert' : '')}>
-          <span className="resumen-stat-num">{vencidoCount}</span>
-          <span className="resumen-stat-label">Vencidos</span>
-        </div>
-        <div className="resumen-stat">
-          <span className="resumen-stat-num">{pendCount}</span>
-          <span className="resumen-stat-label">Pendientes</span>
-        </div>
-        <div className="resumen-stat">
-          <span className="resumen-stat-num">{filas.length}</span>
-          <span className="resumen-stat-label">Activos</span>
-        </div>
-      </div>
 
       <div className="resumen-leyenda">
         <span className="leyenda-item"><span className="leyenda-icon">📅</span> Cargar vencimiento</span>
