@@ -29,6 +29,7 @@ function fmtVenc(v) {
     monto:            v.monto !== null ? parseFloat(v.monto) : null,
     estado:           v.estado || 'N',
     comentarios:      v.comentarios,
+    calendarEventId:  v.calendar_event_id || null,
     esManual:         v.es_manual,
     esAutoGenerado:   v.es_auto_generado,
   };
@@ -109,7 +110,7 @@ const MESES_ES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
 // POST /api/vencimientos — crear nuevo vencimiento
 app.post('/api/vencimientos', async (req, res) => {
   try {
-    const { servicioNombre, fecha, monto, notas, pagado, fechaPago, esAutoGenerado } = req.body;
+    const { servicioNombre, fecha, monto, notas, pagado, fechaPago, esAutoGenerado, calendarEventId } = req.body;
     if (!servicioNombre) return res.status(400).json({ error: 'Falta servicioNombre' });
     const esPagado  = pagado === true;
     const fp        = esPagado ? (fechaPago || fecha) : null;
@@ -129,11 +130,24 @@ app.post('/api/vencimientos', async (req, res) => {
         anio:              anioNum,
         es_manual:         true,
         es_auto_generado:  esAutoGenerado === true,
+        calendar_event_id: calendarEventId || null,
       })
       .select()
       .single();
     if (error) throw error;
     res.json(fmtVenc(data));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/vencimientos/calendar-event — guarda calendarEventId en Supabase
+app.patch('/api/vencimientos/calendar-event', async (req, res) => {
+  try {
+    const { id, calendarEventId } = req.body;
+    if (!id) return res.status(400).json({ error: 'Falta id' });
+    const { error } = await supabase.from('vencimientos')
+      .update({ calendar_event_id: calendarEventId || null }).eq('id', id);
+    if (error) throw error;
+    res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -148,6 +162,18 @@ app.patch('/api/vencimientos/pagar', async (req, res) => {
     const { error } = await supabase.from('vencimientos').update(updates).eq('id', id);
     if (error) throw error;
     res.json({ ok: true, id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/vencimientos/calendar-event — guarda calendarEventId en Supabase
+app.patch('/api/vencimientos/calendar-event', async (req, res) => {
+  try {
+    const { id, calendarEventId } = req.body;
+    if (!id) return res.status(400).json({ error: 'Falta id' });
+    const { error } = await supabase.from('vencimientos')
+      .update({ calendar_event_id: calendarEventId || null }).eq('id', id);
+    if (error) throw error;
+    res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -190,6 +216,18 @@ app.post('/api/servicios', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// PATCH /api/vencimientos/calendar-event — guarda calendarEventId en Supabase
+app.patch('/api/vencimientos/calendar-event', async (req, res) => {
+  try {
+    const { id, calendarEventId } = req.body;
+    if (!id) return res.status(400).json({ error: 'Falta id' });
+    const { error } = await supabase.from('vencimientos')
+      .update({ calendar_event_id: calendarEventId || null }).eq('id', id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PATCH /api/servicios/:nombre — editar servicio
 app.patch('/api/servicios/:nombre', async (req, res) => {
   try {
@@ -223,6 +261,18 @@ app.get('/api/config', async (req, res) => {
     const map = {};
     for (const row of (data || [])) map[row.clave] = row.valor;
     res.json({ googleClientId: map['google_client_id'] || null });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/vencimientos/calendar-event — guarda calendarEventId en Supabase
+app.patch('/api/vencimientos/calendar-event', async (req, res) => {
+  try {
+    const { id, calendarEventId } = req.body;
+    if (!id) return res.status(400).json({ error: 'Falta id' });
+    const { error } = await supabase.from('vencimientos')
+      .update({ calendar_event_id: calendarEventId || null }).eq('id', id);
+    if (error) throw error;
+    res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

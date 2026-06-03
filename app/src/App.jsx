@@ -230,7 +230,7 @@ export default function App() {
       mostrarToast('Vencimiento guardado');
     }
     try {
-      await apiPost(API + '/vencimientos', {
+      const vencCreado = await apiPost(API + '/vencimientos', {
         servicioNombre: servicio.nombre,
         fecha:  datos.fecha,
         monto:  datos.monto ?? null,
@@ -358,9 +358,18 @@ export default function App() {
         const fecha = v.fechaVencimiento;
         if (!fecha || fecha < hoyStr) continue;
         const key = s.nombre + '|' + fecha;
-        if (v.calendarEventId || syncMap[key]) continue;
+        if (v.calendarEventId || syncMap[key]) continue; // ya tiene evento
         try {
-          syncMap[key] = await createCalendarEvent(s.nombre, fecha, v.monto, v.comentarios);
+          const eventId = await createCalendarEvent(s.nombre, fecha, v.monto, v.comentarios);
+          syncMap[key] = eventId;
+          // Persistir en Supabase para no duplicar en futuros syncs
+          if (v.id) {
+            fetch(API + '/vencimientos/calendar-event', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: v.id, calendarEventId: eventId }),
+            }).catch(() => {});
+          }
           creados++;
         } catch (e) { errores++; }
       }
