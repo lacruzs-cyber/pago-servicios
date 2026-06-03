@@ -97,6 +97,13 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
 
   const pendCount    = filas.filter(f => ORDEN[f.estado.clase] <= 4).length;
   const vencidoCount = filas.filter(f => f.estado.clase === 'estado-vencido').length;
+  const hoyStr = ahora.toISOString().split('T')[0];
+  const en3dias = new Date(ahora); en3dias.setDate(ahora.getDate() + 3);
+  const en3diasStr = en3dias.toISOString().split('T')[0];
+  const montoProximos3 = filas
+    .filter(f => f.estado.clase !== 'estado-pagado' && f.estado.clase !== 'estado-multiple')
+    .filter(({ proximo }) => proximo?.fechaVencimiento && proximo.fechaVencimiento <= en3diasStr)
+    .reduce((sum, { proximo }) => sum + (proximo?.monto || 0), 0);
   const montoEstimado = filas
     .filter(f => f.estado.clase !== 'estado-pagado' && f.estado.clase !== 'estado-multiple')
     .reduce((sum, { proximo }) => sum + (proximo?.monto || 0), 0);
@@ -108,6 +115,11 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
     <div className="resumen-page">
       <div className="resumen-encabezado">
         <div className="resumen-fecha-hoy">📅 Hoy es <strong>{diaTexto}</strong></div>
+        {montoProximos3 > 0 && (
+          <div className="resumen-monto-est resumen-monto-urgente">
+            ⚠️ A pagar en los próximos 3 días: <strong>{fmtMonto(montoProximos3)}</strong>
+          </div>
+        )}
         {montoEstimado > 0 && (
           <div className="resumen-monto-est">
             💵 Monto estimado pendiente: <strong>{fmtMonto(montoEstimado)}</strong>

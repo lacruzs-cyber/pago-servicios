@@ -869,6 +869,12 @@ body {
   color: var(--gray-700);
 }
 
+.resumen-monto-urgente {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+  color: #92400E;
+  font-weight: 600;
+}
 .resumen-monto-est {
   font-size: 14px;
   color: #166534;
