@@ -159,6 +159,25 @@ export async function marcarEventoPagado(calendarEventId, servicio) {
   });
 }
 
+// Lista eventos de vencimientos en un rango de fechas
+export async function listarEventosVencimientos(fechaInicio, fechaFin) {
+  const token = window.gapi?.client?.getToken();
+  if (!token) throw new Error('No autenticado con Google');
+
+  const response = await window.gapi.client.calendar.events.list({
+    calendarId: 'primary',
+    timeMin: fechaInicio + 'T00:00:00-03:00',
+    timeMax: fechaFin + 'T23:59:59-03:00',
+    q: 'Vencimiento:',
+    singleEvents: true,
+    maxResults: 250,
+    orderBy: 'startTime',
+  });
+
+  return response.result.items || [];
+}
+
+
 export async function eliminarCalendarEvent(calendarEventId) {
   const token = window.gapi?.client?.getToken();
   if (!token || !calendarEventId) return;

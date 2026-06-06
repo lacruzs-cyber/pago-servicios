@@ -6,7 +6,7 @@ import ServiceForm from './components/ServiceForm';
 import VencimientoForm from './components/VencimientoForm';
 import ConfigModal from './components/ConfigModal';
 import { cargarConfig, guardarConfig, cargarOcultos, guardarOcultos, cargarGcalSync, guardarGcalSync } from './utils/storage';
-import { initGoogleAPI, signIn, signOut, isSignedIn, createCalendarEvent, marcarEventoPagado, eliminarCalendarEvent } from './utils/googleCalendar';
+import { initGoogleAPI, signIn, signOut, isSignedIn, createCalendarEvent, marcarEventoPagado, eliminarCalendarEvent, listarEventosVencimientos } from './utils/googleCalendar';
 import { fechaHoy } from './utils/dateUtils';
 import './App.css';
 
@@ -348,34 +348,102 @@ export default function App() {
 
   async function handleSincronizarCalendar() {
     if (!googleConectado) { mostrarToast('Conectate a Google primero', 'error'); return; }
-    const syncMap = cargarGcalSync();
-    const hoyStr  = fechaHoy();
-    let creados = 0, errores = 0;
-    mostrarToast('Sincronizando...');
-    for (const s of servicios) {
-      for (const v of (s.vencimientos || [])) {
-        if (v.estado === 'S') continue;
-        const fecha = v.fechaVencimiento;
-        if (!fecha || fecha < hoyStr) continue;
-        const key = s.nombre + '|' + fecha;
-        if (v.calendarEventId || syncMap[key]) continue; // ya tiene evento
-        try {
-          const eventId = await createCalendarEvent(s.nombre, fecha, v.monto, v.comentarios);
-          syncMap[key] = eventId;
-          // Persistir en Supabase para no duplicar en futuros syncs
-          if (v.id) {
-            fetch(API + '/vencimientos/calendar-event', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: v.id, calendarEventId: eventId }),
-            }).catch(() => {});
-          }
-          creados++;
-        } catch (e) { errores++; }
+    mostrarToast('Revisando Google Calendar...');
+
+    // Rango: hoy hasta fin del próximo mes
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const hoyStr = fechaHoy();
+    const finProxMes = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0);
+    const finProxMesStr = finProxMes.toISOString().split('T')[0];
+
+    let eliminados = 0, creados = 0, errores = 0;
+
+    try {
+      // 1. Obtener todos los eventos de vencimientos en el rango
+      const eventosCalendar = await listarEventosVencimientos(hoyStr, finProxMesStr);
+
+      // 2. Agrupar por (servicio + fecha) para detectar duplicados
+      // El summary es "💳 Vencimiento: {nombre}"
+      const gruposPorKey = {};
+      for (const ev of eventosCalendar) {
+        const summary = ev.summary || '';
+        const match = summary.match(/Vencimiento:\s*(.+)$/);
+        if (!match) continue;
+        const nombreServ = match[1].trim();
+        const fechaEv = (ev.start?.dateTime || ev.start?.date || '').slice(0, 10);
+        const key = nombreServ + '|' + fechaEv;
+        if (!gruposPorKey[key]) gruposPorKey[key] = [];
+        gruposPorKey[key].push(ev);
       }
+
+      // 3. Eliminar duplicados — conservar el primero, borrar el resto
+      for (const key of Object.keys(gruposPorKey)) {
+        const evs = gruposPorKey[key];
+        if (evs.length <= 1) continue;
+        // Mantener el primero, eliminar los demás
+        for (let i = 1; i < evs.length; i++) {
+          try {
+            await eliminarCalendarEvent(evs[i].id);
+            eliminados++;
+          } catch (e) {}
+        }
+        // Quedarse con el ID del primero en el mapa
+        gruposPorKey[key] = [evs[0]];
+      }
+
+      // 4. Construir mapa de eventos existentes: key → eventId
+      const existentes = {};
+      for (const [key, evs] of Object.entries(gruposPorKey)) {
+        existentes[key] = evs[0].id;
+      }
+
+      // 5. Crear eventos para vencimientos que no tienen uno
+      const syncMap = cargarGcalSync();
+      for (const s of servicios) {
+        for (const v of (s.vencimientos || [])) {
+          if (v.estado === 'S') continue;
+          const fecha = v.fechaVencimiento;
+          if (!fecha || fecha < hoyStr || fecha > finProxMesStr) continue;
+          const key = s.nombre + '|' + fecha;
+          // Verificar si ya existe en Calendar
+          if (existentes[key]) {
+            // Asegurarse de que Supabase tiene el eventId correcto
+            if (!v.calendarEventId && v.id) {
+              fetch(API + '/vencimientos/calendar-event', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: v.id, calendarEventId: existentes[key] }),
+              }).catch(() => {});
+            }
+            continue;
+          }
+          if (v.calendarEventId) continue; // ya tiene en Supabase
+          // No existe → crear
+          try {
+            const eventId = await createCalendarEvent(s.nombre, fecha, v.monto, v.comentarios);
+            syncMap[key] = eventId;
+            if (v.id) {
+              fetch(API + '/vencimientos/calendar-event', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: v.id, calendarEventId: eventId }),
+              }).catch(() => {});
+            }
+            creados++;
+          } catch (e) { errores++; }
+        }
+      }
+      guardarGcalSync(syncMap);
+
+      const msg = [
+        creados   ? creados + ' creados'   : '',
+        eliminados ? eliminados + ' duplicados eliminados' : '',
+        errores   ? errores + ' errores'   : '',
+      ].filter(Boolean).join(' — ');
+      mostrarToast('✅ Sync: ' + (msg || 'todo al día'));
+    } catch (e) {
+      mostrarToast('Error en sincronización: ' + e.message, 'error');
     }
-    guardarGcalSync(syncMap);
-    mostrarToast('Sincronizados: ' + creados + (errores ? ' — errores: ' + errores : ''));
   }
 
   async function handleSignIn() {
