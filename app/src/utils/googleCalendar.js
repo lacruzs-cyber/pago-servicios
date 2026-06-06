@@ -160,21 +160,33 @@ export async function marcarEventoPagado(calendarEventId, servicio) {
 }
 
 // Lista eventos de vencimientos en un rango de fechas
+// No usa 'q' (poco confiable con emojis) — trae todos y filtra en JS
 export async function listarEventosVencimientos(fechaInicio, fechaFin) {
   const token = window.gapi?.client?.getToken();
   if (!token) throw new Error('No autenticado con Google');
 
-  const response = await window.gapi.client.calendar.events.list({
-    calendarId: 'primary',
-    timeMin: fechaInicio + 'T00:00:00-03:00',
-    timeMax: fechaFin + 'T23:59:59-03:00',
-    q: 'Vencimiento:',
-    singleEvents: true,
-    maxResults: 250,
-    orderBy: 'startTime',
-  });
+  let allItems = [];
+  let pageToken = undefined;
 
-  return response.result.items || [];
+  do {
+    const params = {
+      calendarId: 'primary',
+      timeMin: fechaInicio + 'T00:00:00-03:00',
+      timeMax: fechaFin + 'T23:59:59-03:00',
+      singleEvents: true,
+      maxResults: 250,
+      orderBy: 'startTime',
+    };
+    if (pageToken) params.pageToken = pageToken;
+
+    const response = await window.gapi.client.calendar.events.list(params);
+    const items = response.result.items || [];
+    allItems = allItems.concat(items);
+    pageToken = response.result.nextPageToken;
+  } while (pageToken);
+
+  // Filtrar solo eventos de vencimientos (por título)
+  return allItems.filter(ev => (ev.summary || '').includes('Vencimiento:'));
 }
 
 

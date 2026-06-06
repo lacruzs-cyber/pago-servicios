@@ -364,6 +364,7 @@ export default function App() {
 
       // 2. Agrupar por (servicio + fecha) para detectar duplicados
       // El summary es "💳 Vencimiento: {nombre}"
+      console.log('[Sync] Eventos encontrados en Calendar:', eventosCalendar.length, eventosCalendar.map(e => e.summary));
       const gruposPorKey = {};
       for (const ev of eventosCalendar) {
         const summary = ev.summary || '';
@@ -384,8 +385,11 @@ export default function App() {
         for (let i = 1; i < evs.length; i++) {
           try {
             await eliminarCalendarEvent(evs[i].id);
+            console.log('[Sync] Duplicado eliminado:', evs[i].summary, evs[i].id);
             eliminados++;
-          } catch (e) {}
+          } catch (e) {
+            console.error('[Sync] Error eliminando duplicado:', e);
+          }
         }
         // Quedarse con el ID del primero en el mapa
         gruposPorKey[key] = [evs[0]];
@@ -436,11 +440,12 @@ export default function App() {
       guardarGcalSync(syncMap);
 
       const msg = [
-        creados   ? creados + ' creados'   : '',
+        eventosCalendar.length + ' eventos en Calendar',
+        creados    ? creados + ' creados'               : '',
         eliminados ? eliminados + ' duplicados eliminados' : '',
-        errores   ? errores + ' errores'   : '',
+        errores    ? errores + ' errores'               : '',
       ].filter(Boolean).join(' — ');
-      mostrarToast('✅ Sync: ' + (msg || 'todo al día'));
+      mostrarToast('✅ Sync: ' + msg);
     } catch (e) {
       mostrarToast('Error en sincronización: ' + e.message, 'error');
     }
