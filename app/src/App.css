@@ -1001,8 +1001,7 @@ body {
 .estado-badge.estado-sin-venc { background: var(--gray-100); color: var(--gray-400); }
 
 @media (max-width: 600px) {
-  .resumen-table th:nth-child(4),
-  .resumen-table td:nth-child(4) { display: none; }
+  /* columna monto visible también en mobile */
   .login-box { padding: 28px 20px; }
 }
 /* ── Leyenda de iconos ────────────────────────────────── */
