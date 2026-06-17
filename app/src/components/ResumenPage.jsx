@@ -11,6 +11,9 @@ const MESES_LARGOS = ['enero','febrero','marzo','abril','mayo','junio',
   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
+const SERVICIOS_OCULTOS_RESUMEN = ['MARIEL'];
+const SERVICIOS_TOOLTIP_ANUAL   = ['NORA', 'ROSANA'];
+
 function esMamaS(s) {
   return s.esMama === true || (s.categoria || '').includes('mama');
 }
@@ -19,17 +22,23 @@ function calcEstado(s, mesActual) {
   const venc = s.vencimientos || [];
 
   if (s.permiteMultiplesPagos) {
+    const anioActual = mesActual.split('-')[0];
     const pagosEsteMes = venc.filter(v =>
       v.estado === 'S' &&
       ((v.fechaPago || '').startsWith(mesActual) || (v.fechaVencimiento || '').startsWith(mesActual))
     );
+    const pagosEsteAnio = venc
+      .filter(v => v.estado === 'S' &&
+        ((v.fechaPago || '').startsWith(anioActual) || (v.fechaVencimiento || '').startsWith(anioActual)))
+      .sort((a, b) =>
+        (a.fechaPago || a.fechaVencimiento || '').localeCompare(b.fechaPago || b.fechaVencimiento || ''));
     if (pagosEsteMes.length > 0) {
       return { clase: 'estado-multiple',
         label: pagosEsteMes.length + ' pago' + (pagosEsteMes.length !== 1 ? 's' : ''),
-        emoji: '💰', esMama: false, pagosEsteMes, esMultiple: true };
+        emoji: '💰', esMama: false, pagosEsteMes, pagosEsteAnio, esMultiple: true };
     }
     return { clase: 'estado-normal', label: 'Pendiente', emoji: '🟢',
-      esMama: false, pagosEsteMes: [], esMultiple: true };
+      esMama: false, pagosEsteMes: [], pagosEsteAnio, esMultiple: true };
   }
 
   if (venc.length === 0) return null;
@@ -80,6 +89,7 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
   const filas = useMemo(() => {
     const rows = [];
     for (const s of servicios) {
+      if (SERVICIOS_OCULTOS_RESUMEN.includes(s.nombre)) continue;
       const estado = calcEstado(s, mesActual);
       if (!estado) continue;
       rows.push({ s, estado, proximo: estado.proximo || null });
@@ -152,6 +162,16 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
               const esMontoRef = montoExplicito == null && montoRef != null;
               const esMultiple = estado.esMultiple;
               const tieneMontoConocido = proximo?.monto != null;
+              const esTooltipAnual = SERVICIOS_TOOLTIP_ANUAL.includes(s.nombre);
+              const tooltipAnualStr = esTooltipAnual
+                ? (estado.pagosEsteAnio?.length > 0
+                    ? 'Pagos ' + mesActual.split('-')[0] + ':\n' +
+                      estado.pagosEsteAnio.map(p => {
+                        const f = p.fechaPago || p.fechaVencimiento || '';
+                        return fmtFecha(f) + (p.monto != null ? ': ' + fmtMonto(p.monto) : '');
+                      }).join('\n')
+                    : 'Sin pagos registrados este año')
+                : null;
               const ultimoPagoMes = esMultiple && estado.pagosEsteMes?.length > 0
                 ? estado.pagosEsteMes[estado.pagosEsteMes.length - 1]
                 : null;
@@ -160,7 +180,11 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
               return (
                 <tr key={s.nombre} className={'resumen-row ' + estado.clase}>
                   <td>
-                    <span className={'estado-badge ' + estado.clase}>
+                    <span
+                      className={'estado-badge ' + estado.clase}
+                      title={tooltipAnualStr || undefined}
+                      style={esTooltipAnual ? { cursor: 'help' } : undefined}
+                    >
                       {estado.emoji} {estado.label}
                     </span>
                     {esMultiple && estado.pagosEsteMes?.length > 0 && (
@@ -174,14 +198,18 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                     <span>{s.nombre}</span>
                   </td>
                   <td className="col-fecha-cell">
-                    {esMultiple
-                      ? fmtFecha(ultimoPagoMes?.fechaPago || ultimoPagoMes?.fechaVencimiento)
-                      : fmtFecha(proximo?.fechaVencimiento)}
+                    {esTooltipAnual
+                      ? '-'
+                      : esMultiple
+                        ? fmtFecha(ultimoPagoMes?.fechaPago || ultimoPagoMes?.fechaVencimiento)
+                        : fmtFecha(proximo?.fechaVencimiento)}
                   </td>
                   <td className="col-monto-cell">
-                    {montoRef != null
-                      ? <span className={esMontoRef ? 'col-monto-ref-txt' : ''}>{fmtMonto(montoRef)}</span>
-                      : '-'}
+                    {esTooltipAnual
+                      ? '-'
+                      : montoRef != null
+                        ? <span className={esMontoRef ? 'col-monto-ref-txt' : ''}>{fmtMonto(montoRef)}</span>
+                        : '-'}
                   </td>
                   <td className="col-acciones-cell">
                     <button
