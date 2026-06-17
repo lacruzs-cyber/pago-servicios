@@ -8,12 +8,37 @@ function fechaHoyMas15() {
   return d.toISOString().split('T')[0];
 }
 
+/** Formatea un número en estilo argentino: 1.234.567,89 */
+function formatMontoAR(num) {
+  if (num == null) return '';
+  return Number(num).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Parsea un string en formato AR u otros a número */
+function parseMontoAR(str) {
+  if (!str || !str.toString().trim()) return null;
+  let s = str.toString().trim();
+  if (s.includes(',')) {
+    // Formato AR: punto=miles, coma=decimal
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    // Sin coma: eliminar puntos (separador miles) y parsear
+    s = s.replace(/\./g, '');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
 export default function VencimientoForm({ servicio, onGuardar, onCerrar, modoRegistroPago = false }) {
   const fechaEstimada = estimarProximoVencimiento(servicio.diaEstimado);
 
+  const montoPendiente  = servicio.montoPendiente;
+  const ultimoMonto     = servicio.ultimoMonto;
+  const montoReferencia = montoPendiente || ultimoMonto;
+
   const [form, setForm] = useState({
     fecha: modoRegistroPago ? fechaHoy() : fechaHoyMas15(),
-    monto: '',
+    monto: montoReferencia ? formatMontoAR(montoReferencia) : '',
     notas: '',
   });
   const [error, setError] = useState('');
@@ -31,15 +56,11 @@ export default function VencimientoForm({ servicio, onGuardar, onCerrar, modoReg
     }
     onGuardar({
       fecha: form.fecha,
-      monto: form.monto !== '' ? parseFloat(form.monto) : null,
+      monto: parseMontoAR(form.monto),
       notas: form.notas.trim(),
       ...(modoRegistroPago ? { pagado: true, fechaPago: form.fecha } : {}),
     });
   }
-
-  const montoPendiente = servicio.montoPendiente;
-  const ultimoMonto = servicio.ultimoMonto;
-  const montoReferencia = montoPendiente || ultimoMonto;
 
   const titulo = modoRegistroPago
     ? `Registrar pago — ${servicio.nombre}`
@@ -106,14 +127,13 @@ export default function VencimientoForm({ servicio, onGuardar, onCerrar, modoReg
             <input
               className="form-input with-prefix"
               name="monto"
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               value={form.monto}
               onChange={handleChange}
               placeholder={montoReferencia
-                ? montoReferencia.toLocaleString('es-AR', { maximumFractionDigits: 0 })
-                : '0.00'}
+                ? formatMontoAR(montoReferencia)
+                : '0,00'}
             />
           </div>
         </div>
