@@ -19,10 +19,8 @@ function parseMontoAR(str) {
   if (!str || !str.toString().trim()) return null;
   let s = str.toString().trim();
   if (s.includes(',')) {
-    // Formato AR: punto=miles, coma=decimal
     s = s.replace(/\./g, '').replace(',', '.');
   } else {
-    // Sin coma: eliminar puntos (separador miles) y parsear
     s = s.replace(/\./g, '');
   }
   const n = parseFloat(s);
@@ -38,7 +36,7 @@ export default function VencimientoForm({ servicio, onGuardar, onCerrar, modoReg
 
   const [form, setForm] = useState({
     fecha: modoRegistroPago ? fechaHoy() : fechaHoyMas15(),
-    monto: montoReferencia ? formatMontoAR(montoReferencia) : '',
+    monto: '',
     notas: '',
   });
   const [error, setError] = useState('');
