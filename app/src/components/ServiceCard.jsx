@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CATEGORIAS } from '../data/serviciosIniciales';
-import { formatFecha, etiquetaUrgencia, estimarProximoVencimiento } from '../utils/dateUtils';
+import { formatFecha, etiquetaUrgencia, estimarProximoVencimiento, esServicioAguinaldo, esMesAguinaldo } from '../utils/dateUtils';
 
 function norm(v) {
   return {
@@ -32,12 +32,22 @@ export default function ServiceCard({
   const cat = CATEGORIAS[servicio.categoria] || CATEGORIAS.otros;
 
   const todosNorm = (servicio.vencimientos || []).map(norm);
+  const esAguinaldoMes = esMesAguinaldo();
+  const esServAguinaldo = esServicioAguinaldo(servicio.nombre);
 
-  const pendientes = todosNorm
+  // Filtrar: si es aguinaldo y NO estamos en junio/diciembre, excluir pagados
+  const filtrados = todosNorm.filter(v => {
+    if (v._pagado && esServAguinaldo && !esAguinaldoMes) {
+      return false; // Ocultar aguinaldos pagados fuera de junio/diciembre
+    }
+    return true;
+  });
+
+  const pendientes = filtrados
     .filter(v => !v._pagado && v._fecha)
     .sort((a, b) => a._fecha.localeCompare(b._fecha));
 
-  const pagados = todosNorm
+  const pagados = filtrados
     .filter(v => v._pagado && v._fecha)
     .sort((a, b) => b._fecha.localeCompare(a._fecha));
 
