@@ -93,9 +93,22 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
     for (const s of servicios) {
       if (SERVICIOS_OCULTOS_RESUMEN.includes(s.nombre)) continue;
       
-      // Filtrar aguinaldos fuera de junio/diciembre
-      if (esServicioAguinaldo(s.nombre) && !esAguinaldoMes) {
-        continue;
+      // Filtrar aguinaldos: si es aguinaldo y está pagado, o si no es mes de aguinaldo
+      if (esServicioAguinaldo(s.nombre)) {
+        // Si es aguinaldo...
+        if (!esAguinaldoMes) {
+          // ...y no estamos en junio/diciembre, saltarlo
+          continue;
+        }
+        // Si estamos en junio/diciembre pero está pagado este mes, también saltarlo
+        const pagadoEsteMes = (s.vencimientos || []).some(v =>
+          v.estado === 'S' &&
+          ((v.fechaPago || '').startsWith(mesActual) || (v.fechaVencimiento || '').startsWith(mesActual))
+        );
+        if (pagadoEsteMes) {
+          // Si está pagado este mes, no mostrar
+          continue;
+        }
       }
       
       const estado = calcEstado(s, mesActual);
