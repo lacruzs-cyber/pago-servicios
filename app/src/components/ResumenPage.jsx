@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { esServicioAguinaldo, esMesAguinaldo } from '../utils/dateUtils';
 
 const EMO = {
   salud:'🏥', servicios:'🏠', telefonia:'📱', entretenimiento:'📺',
@@ -85,11 +86,18 @@ function fmtMonto(m) {
 export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento }) {
   const ahora = new Date();
   const mesActual = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
+  const esAguinaldoMes = esMesAguinaldo();
 
   const filas = useMemo(() => {
     const rows = [];
     for (const s of servicios) {
       if (SERVICIOS_OCULTOS_RESUMEN.includes(s.nombre)) continue;
+      
+      // Filtrar aguinaldos fuera de junio/diciembre
+      if (esServicioAguinaldo(s.nombre) && !esAguinaldoMes) {
+        continue;
+      }
+      
       const estado = calcEstado(s, mesActual);
       if (!estado) continue;
       rows.push({ s, estado, proximo: estado.proximo || null });
@@ -103,7 +111,7 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
       const fb = b.proximo?.fechaVencimiento || 'z';
       return fa.localeCompare(fb);
     });
-  }, [servicios, mesActual]);
+  }, [servicios, mesActual, esAguinaldoMes]);
 
   const pendCount    = filas.filter(f => ORDEN[f.estado.clase] <= 4).length;
   const vencidoCount = filas.filter(f => f.estado.clase === 'estado-vencido').length;
