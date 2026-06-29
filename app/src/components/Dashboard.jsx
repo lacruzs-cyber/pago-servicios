@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { etiquetaUrgencia, formatFecha, diasHasta } from '../utils/dateUtils';
+import { etiquetaUrgencia, formatFecha, diasHasta, esServicioAguinaldo, esMesAguinaldo } from '../utils/dateUtils';
 import { CATEGORIAS } from '../data/serviciosIniciales';
 
 function norm(v) {
@@ -16,9 +16,21 @@ export default function Dashboard({ servicios, onMarcarPagado, onAgregarVencimie
 
   const items = useMemo(() => {
     const out = [];
+    const esAguinaldoMes = esMesAguinaldo();
+    
     servicios.forEach(serv => {
       (serv.vencimientos || []).map(norm)
-        .filter(v => !v._pagado && v._fecha)
+        .filter(v => {
+          // Filtrar pagados
+          if (v._pagado || !v._fecha) return false;
+          
+          // Si es servicio de aguinaldo y NO estamos en junio/diciembre, filtrar
+          if (esServicioAguinaldo(serv.nombre) && !esAguinaldoMes) {
+            return false;
+          }
+          
+          return true;
+        })
         .forEach(v => {
           const dias = diasHasta(v._fecha);
           if (dias !== null && dias <= 30) out.push({ serv, v, dias });

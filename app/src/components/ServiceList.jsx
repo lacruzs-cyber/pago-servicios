@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import ServiceCard from './ServiceCard';
 import { CATEGORIAS } from '../data/serviciosIniciales';
+import { esServicioAguinaldo } from '../utils/dateUtils';
 
 const ES_CAT_MAMA = catKey => catKey.endsWith('_mama');
 
@@ -33,7 +34,16 @@ export default function ServiceList({
         const matchCat = categoriaFiltro === 'todas' || s.categoria === categoriaFiltro;
         return matchNombre && matchCat;
       })
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+      .sort((a, b) => {
+        // Aguinaldos al final
+        const aEsAguinaldo = esServicioAguinaldo(a.nombre);
+        const bEsAguinaldo = esServicioAguinaldo(b.nombre);
+        
+        if (aEsAguinaldo && !bEsAguinaldo) return 1;
+        if (!aEsAguinaldo && bEsAguinaldo) return -1;
+        
+        return a.nombre.localeCompare(b.nombre);
+      });
   }, [servicios, busqueda, categoriaFiltro]);
 
   const { porCategoria, serviciosMama } = useMemo(() => {

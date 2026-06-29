@@ -76,3 +76,17 @@ export function ordenarPorFecha(vencimientos) {
     return a.fecha.localeCompare(b.fecha);
   });
 }
+
+// Detectar si un servicio es de aguinaldo (Nora o Rosana)
+export function esServicioAguinaldo(nombreServicio) {
+  if (!nombreServicio) return false;
+  const nombre = nombreServicio.toUpperCase();
+  return nombre.includes('AGUINALDO') || nombre.includes('NORA') || nombre.includes('ROSANA');
+}
+
+// Verificar si el mes actual es junio (6) o diciembre (12)
+export function esMesAguinaldo() {
+  const hoy = new Date();
+  const mes = hoy.getMonth() + 1; // 1-12
+  return mes === 6 || mes === 12;
+}
