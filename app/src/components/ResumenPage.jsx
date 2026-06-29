@@ -44,14 +44,7 @@ function calcEstado(s, mesActual) {
 
   if (venc.length === 0) return null;
 
-  const pagadoEsteMes = venc.some(v =>
-    v.estado === 'S' &&
-    ((v.fechaPago || '').startsWith(mesActual) || (v.fechaVencimiento || '').startsWith(mesActual))
-  );
-  if (pagadoEsteMes) {
-    return { clase: 'estado-pagado', label: 'Al día', emoji: '✅', esMama: esMamaS(s) };
-  }
-
+  // Primero: buscar vencimientos NO pagados
   const pend = venc.filter(v => v.estado !== 'S' && v.fechaVencimiento);
   if (pend.length > 0) {
     const prox = pend.reduce((m, v) => v.fechaVencimiento < m.fechaVencimiento ? v : m, pend[0]);
@@ -62,6 +55,15 @@ function calcEstado(s, mesActual) {
     if (d <= 2)  return { clase: 'estado-urgente', label: 'Urgente',  emoji: '🟡', proximo: prox, esMama: esMamaS(s) };
     if (d <= 7)  return { clase: 'estado-proximo', label: 'Próximo',  emoji: '🔵', proximo: prox, esMama: esMamaS(s) };
     return { clase: 'estado-normal', label: 'Pendiente', emoji: '🟢', proximo: prox, esMama: esMamaS(s) };
+  }
+
+  // Luego: si TODO está pagado, mostrar "Al día"
+  const pagadoEsteMes = venc.some(v =>
+    v.estado === 'S' &&
+    ((v.fechaPago || '').startsWith(mesActual) || (v.fechaVencimiento || '').startsWith(mesActual))
+  );
+  if (pagadoEsteMes) {
+    return { clase: 'estado-pagado', label: 'Al día', emoji: '✅', esMama: esMamaS(s) };
   }
 
   return { clase: 'estado-normal', label: 'Pendiente', emoji: '🟢', proximo: null, esMama: esMamaS(s) };
