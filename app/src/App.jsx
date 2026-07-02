@@ -77,18 +77,18 @@ async function autoGenerarMama(serviciosAPI) {
 // Servicios que NO deben crear eventos en Google Calendar
 const SERVICIOS_SIN_CALENDAR = ['NORA', 'ROSANA', 'AGUINALDO NORA', 'AGUINALDO ROSANA', 'MARIEL'];
 
-// Auto-genera vencimientos de Aguinaldo en julio (dia 31) y diciembre (dia 31)
+// Auto-genera vencimientos de Aguinaldo en junio (dia 30) y diciembre (dia 31)
 async function autoGenerarAguinaldo(serviciosAPI) {
   const hoy  = new Date();
   const anio = hoy.getFullYear();
   const mes  = hoy.getMonth() + 1; // 1-12
 
-  // Solo generar en julio (7) y diciembre (12)
-  if (mes !== 7 && mes !== 12) return;
+  // Solo generar en junio (6) y diciembre (12)
+  if (mes !== 6 && mes !== 12) return;
 
   const mesStr  = String(mes).padStart(2, '0');
-  const fechaVenc = mes === 7
-    ? anio + '-07-31'
+  const fechaVenc = mes === 6
+    ? anio + '-06-30'
     : anio + '-12-31';
   const clave = 'aguinaldo_gen_' + anio + '_' + mesStr;
   if (localStorage.getItem(clave)) return;
@@ -109,7 +109,7 @@ async function autoGenerarAguinaldo(serviciosAPI) {
         servicioNombre: serv.nombre,
         fecha:          fechaVenc,
         monto:          null,
-        notas:          'Aguinaldo ' + (mes === 7 ? '1º semestre' : '2º semestre') + ' (auto-generado)',
+        notas:          'Aguinaldo ' + (mes === 6 ? '1º semestre' : '2º semestre') + ' (auto-generado)',
         esAutoGenerado: true,
       });
     } catch (e) {

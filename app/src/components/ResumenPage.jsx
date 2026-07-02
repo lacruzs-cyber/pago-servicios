@@ -85,7 +85,7 @@ function fmtMonto(m) {
 }
 
 // AGUINALDO solo visible en julio (7) y diciembre (12)
-const AGUINALDO_MESES_VALIDOS = [7, 12];
+const AGUINALDO_MESES_VALIDOS = [6, 12]; // junio y diciembre
 
 export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento, onEditarVencimiento }) {
   const ahora = new Date();
