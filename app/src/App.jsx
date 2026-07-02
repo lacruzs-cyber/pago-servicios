@@ -640,4 +640,12 @@ export default function App() {
       )}
       {modalConfig && (
         <ConfigModal
-       
+          clientId={config.googleClientId}
+          onGuardar={handleGuardarConfig}
+          onCerrar={() => setModalConfig(false)}
+        />
+      )}
+      {toast && <div className={'toast toast-' + toast.tipo}>{toast.mensaje}</div>}
+    </div>
+  );
+}

@@ -234,4 +234,22 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       <button
                         className="btn-icono btn-icono-editar"
                         title="Editar vencimiento"
-                        onClic
+                        onClick={() => onEditarVencimiento(s, proximo)}
+                      >✏️</button>
+                    )}
+
+                    <button
+                      className="btn-icono btn-icono-ok"
+                      title="Marcar como pagado"
+                      onClick={() => onMarcarPagado(s, proximo?.id || null)}
+                    >✅</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
