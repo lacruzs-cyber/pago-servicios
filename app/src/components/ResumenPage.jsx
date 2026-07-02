@@ -84,28 +84,36 @@ function fmtMonto(m) {
   return '$' + Number(m).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// AGUINALDO solo visible en julio (7) y diciembre (12)
+const AGUINALDO_MESES_VALIDOS = [7, 12];
+
 export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento, onEditarVencimiento }) {
   const ahora = new Date();
-  const mesActual = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
+  const mesActual  = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
+  const mesNumeral = ahora.getMonth() + 1; // 1-12
 
   const filas = useMemo(() => {
     const rows = [];
     for (const s of servicios) {
       if (SERVICIOS_OCULTOS_RESUMEN.includes(s.nombre)) continue;
+      // AGUINALDO solo en julio y diciembre
+      if (s.nombre.toUpperCase().includes('AGUINALDO') &&
+          !AGUINALDO_MESES_VALIDOS.includes(mesNumeral)) continue;
       const estado = calcEstado(s, mesActual);
       if (!estado) continue;
       rows.push({ s, estado, proximo: estado.proximo || null });
     }
     return rows.sort((a, b) => {
-      const oa = ORDEN[a.estado.clase] ?? 99;
-      const ob = ORDEN[b.estado.clase] ?? 99;
+      // esMultiple (NORA/ROSANA/AGUINALDO) siempre en posición fija: entre pendientes (0-4) y pagados (6)
+      const oa = a.estado.esMultiple ? 5 : (ORDEN[a.estado.clase] ?? 99);
+      const ob = b.estado.esMultiple ? 5 : (ORDEN[b.estado.clase] ?? 99);
       if (oa !== ob) return oa - ob;
       if (a.estado.esMama !== b.estado.esMama) return a.estado.esMama ? 1 : -1;
       const fa = a.proximo?.fechaVencimiento || 'z';
       const fb = b.proximo?.fechaVencimiento || 'z';
       return fa.localeCompare(fb);
     });
-  }, [servicios, mesActual]);
+  }, [servicios, mesActual, mesNumeral]);
 
   const pendCount    = filas.filter(f => ORDEN[f.estado.clase] <= 4).length;
   const vencidoCount = filas.filter(f => f.estado.clase === 'estado-vencido').length;
@@ -226,22 +234,4 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       <button
                         className="btn-icono btn-icono-editar"
                         title="Editar vencimiento"
-                        onClick={() => onEditarVencimiento(s, proximo)}
-                      >✏️</button>
-                    )}
-
-                    <button
-                      className="btn-icono btn-icono-ok"
-                      title="Marcar como pagado"
-                      onClick={() => onMarcarPagado(s, proximo?.id || null)}
-                    >✅</button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+                        onClic
