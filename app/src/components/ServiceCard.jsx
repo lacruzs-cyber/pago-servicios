@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CATEGORIAS } from '../data/serviciosIniciales';
-import { formatFecha, etiquetaUrgencia, estimarProximoVencimiento, esServicioAguinaldo, esMesAguinaldo } from '../utils/dateUtils';
+import { formatFecha, etiquetaUrgencia, estimarProximoVencimiento } from '../utils/dateUtils';
 
 function norm(v) {
   return {
@@ -23,31 +23,21 @@ export default function ServiceCard({
   onMarcarPagado,
   onEliminarVencimiento,
   onEditarServicio,
-  onEliminarServicio,
   onRegistrarPago,
   onOcultarServicio,
+  onEditarVencimiento,
   esOculto = false,
 }) {
   const [expandido, setExpandido] = useState(false);
   const cat = CATEGORIAS[servicio.categoria] || CATEGORIAS.otros;
 
   const todosNorm = (servicio.vencimientos || []).map(norm);
-  const esAguinaldoMes = esMesAguinaldo();
-  const esServAguinaldo = esServicioAguinaldo(servicio.nombre);
 
-  // Filtrar: si es aguinaldo y NO estamos en junio/diciembre, excluir pagados
-  const filtrados = todosNorm.filter(v => {
-    if (v._pagado && esServAguinaldo && !esAguinaldoMes) {
-      return false; // Ocultar aguinaldos pagados fuera de junio/diciembre
-    }
-    return true;
-  });
-
-  const pendientes = filtrados
+  const pendientes = todosNorm
     .filter(v => !v._pagado && v._fecha)
     .sort((a, b) => a._fecha.localeCompare(b._fecha));
 
-  const pagados = filtrados
+  const pagados = todosNorm
     .filter(v => v._pagado && v._fecha)
     .sort((a, b) => b._fecha.localeCompare(a._fecha));
 
@@ -166,6 +156,13 @@ export default function ServiceCard({
             </div>
           )}
 
+          {servicio.diaEstimado && estimado && (
+            <div className="estimacion-banner">
+              📊 Vence aprox. el día <strong>{servicio.diaEstimado}</strong> de cada mes
+              — próxima: <strong>{formatFecha(estimado)}</strong>
+            </div>
+          )}
+
           {/* Pendientes */}
           {pendientes.length > 0 && (
             <div className="venc-section">
@@ -194,6 +191,13 @@ export default function ServiceCard({
                         onClick={() => onMarcarPagado(sid, v.id)}>
                         ✅ Pagado
                       </button>
+                      {!v.esExcel && v.id && (
+                        <button className="btn btn-outline btn-xs"
+                          onClick={() => onEditarVencimiento(servicio, v)}
+                          title="Editar fecha y monto">
+                          ✏️
+                        </button>
+                      )}
                       {!v.esExcel && (
                         <button className="btn btn-danger btn-xs"
                           onClick={() => onEliminarVencimiento(sid, v.id)}
@@ -221,15 +225,6 @@ export default function ServiceCard({
                     {v.mes && <span className="venc-notas">{v.mes} {v.anio}</span>}
                     {v.fechaPago && <span className="venc-notas">el {formatFecha(v.fechaPago)}</span>}
                   </div>
-                  <div className="venc-item-actions">
-                    {!v.esExcel && (
-                      <button className="btn btn-danger btn-xs"
-                        onClick={() => onEliminarVencimiento(sid, v.id)}
-                        title="Eliminar">
-                        🗑
-                      </button>
-                    )}
-                  </div>
                 </div>
               ))}
             </div>
@@ -245,11 +240,12 @@ export default function ServiceCard({
             <button className="btn btn-outline btn-sm" onClick={() => onEditarServicio(servicio)}>
               ✏️ Editar
             </button>
-            {onEliminarServicio && (
-              <button className="btn btn-danger btn-sm" onClick={() => onEliminarServicio(sid)}>
-                🗑️ Eliminar servicio
-              </button>
-            )}
+            <button
+              className={esOculto ? 'btn btn-primary btn-sm' : 'btn btn-warning btn-sm'}
+              onClick={() => onOcultarServicio(sid)}
+            >
+              {esOculto ? '👁️ Restaurar servicio' : '👁️ Ocultar servicio'}
+            </button>
           </div>
         </div>
       )}

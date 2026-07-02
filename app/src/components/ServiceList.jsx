@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
 import ServiceCard from './ServiceCard';
 import { CATEGORIAS } from '../data/serviciosIniciales';
-import { esServicioAguinaldo } from '../utils/dateUtils';
 
-const ES_CAT_MAMA = catKey => catKey.endsWith('_mama');
+const ES_MAMA = nombre => nombre.toUpperCase().includes('MAMA') || nombre.toUpperCase().includes('MAMÁ');
 
 export default function ServiceList({
   servicios,
@@ -13,95 +12,59 @@ export default function ServiceList({
   onMarcarPagado,
   onEliminarVencimiento,
   onEditarServicio,
-  onEliminarServicio,
   onOcultarServicio,
   onMostrarServicio,
   onRegistrarPago,
+  onEditarVencimiento,
 }) {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
   const [mostrarOcultos, setMostrarOcultos] = useState(false);
-  const [grupoExpandido, setGrupoExpandido] = useState(null);
+  const [mamaExpandido, setMamaExpandido] = useState(true);
 
-  function toggleGrupo(catKey) {
-    setGrupoExpandido(prev => prev === catKey ? null : catKey);
-  }
+  const serviciosPropios = useMemo(() =>
+    servicios.filter(s => !ES_MAMA(s.nombre)), [servicios]);
 
-  const filtrados = useMemo(() => {
-    return servicios
+  const serviciosMama = useMemo(() =>
+    servicios.filter(s => ES_MAMA(s.nombre)), [servicios]);
+
+  const propiosFiltrados = useMemo(() => {
+    return serviciosPropios
       .filter(s => {
         const matchNombre = s.nombre.toLowerCase().includes(busqueda.toLowerCase());
         const matchCat = categoriaFiltro === 'todas' || s.categoria === categoriaFiltro;
         return matchNombre && matchCat;
       })
-      .sort((a, b) => {
-        // Aguinaldos al final
-        const aEsAguinaldo = esServicioAguinaldo(a.nombre);
-        const bEsAguinaldo = esServicioAguinaldo(b.nombre);
-        
-        if (aEsAguinaldo && !bEsAguinaldo) return 1;
-        if (!aEsAguinaldo && bEsAguinaldo) return -1;
-        
-        return a.nombre.localeCompare(b.nombre);
-      });
-  }, [servicios, busqueda, categoriaFiltro]);
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [serviciosPropios, busqueda, categoriaFiltro]);
 
-  const { porCategoria, serviciosMama } = useMemo(() => {
-    const normal = {};
-    const mama = [];
-    filtrados.forEach(s => {
-      if (ES_CAT_MAMA(s.categoria)) {
-        mama.push(s);
-      } else {
-        if (!normal[s.categoria]) normal[s.categoria] = [];
-        normal[s.categoria].push(s);
-      }
+  const porCategoria = useMemo(() => {
+    const grupos = {};
+    propiosFiltrados.forEach(s => {
+      if (!grupos[s.categoria]) grupos[s.categoria] = [];
+      grupos[s.categoria].push(s);
     });
-    return { porCategoria: normal, serviciosMama: mama };
-  }, [filtrados]);
+    return grupos;
+  }, [propiosFiltrados]);
+
+  // Pendientes mama para el badge del encabezado
+  const mamaPendientesCount = useMemo(() =>
+    serviciosMama.reduce((acc, s) => acc + (s.vencimientos || []).filter(v => {
+      const pagado = v.pagado === true || v.estado === 'S';
+      return !pagado && (v.fecha || v.fechaVencimiento);
+    }).length, 0),
+  [serviciosMama]);
 
   const cardProps = {
     onAgregarVencimiento,
     onMarcarPagado,
     onEliminarVencimiento,
     onEditarServicio,
-    onEliminarServicio,
     onRegistrarPago,
     onOcultarServicio,
+    onEditarVencimiento,
     esOculto: false,
   };
-
-  function renderGrupo(catKey, items) {
-    const cat = CATEGORIAS[catKey] || CATEGORIAS.otros;
-    const abierto = grupoExpandido === catKey;
-    const pendientesGrupo = items.reduce((acc, s) =>
-      acc + (s.vencimientos || []).filter(v => !v.pagado && v.estado !== 'S' && (v.fecha || v.fechaVencimiento)).length, 0);
-    return (
-      <div key={catKey} className="category-group">
-        <button
-          className="category-group-title category-group-toggle"
-          style={{ borderColor: cat.color }}
-          onClick={() => toggleGrupo(catKey)}
-        >
-          <span style={{ color: cat.color }}>
-            {cat.emoji} {cat.label}
-            {pendientesGrupo > 0 && (
-              <span className="mama-badge" style={{ marginLeft: 8 }}>
-                {pendientesGrupo} pendiente{pendientesGrupo !== 1 ? 's' : ''}
-              </span>
-            )}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="category-count">{items.length}</span>
-            <span className="mama-toggle">{abierto ? '▲' : '▼'}</span>
-          </span>
-        </button>
-        {abierto && items.map(serv => (
-          <ServiceCard key={serv.id || serv.nombre} servicio={serv} {...cardProps} />
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div className="service-list">
@@ -110,7 +73,7 @@ export default function ServiceList({
       <div className="list-toolbar">
         <input
           className="form-input search-input"
-          placeholder="Buscar servicio..."
+          placeholder="🔍 Buscar servicio..."
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
         />
@@ -119,7 +82,7 @@ export default function ServiceList({
           value={categoriaFiltro}
           onChange={e => setCategoriaFiltro(e.target.value)}
         >
-          <option value="todas">Todas las categorias</option>
+          <option value="todas">Todas las categorías</option>
           {Object.entries(CATEGORIAS).map(([key, cat]) => (
             <option key={key} value={key}>{cat.emoji} {cat.label}</option>
           ))}
@@ -131,7 +94,7 @@ export default function ServiceList({
 
       {/* Contador */}
       <div className="list-count">
-        {filtrados.length} servicio{filtrados.length !== 1 ? 's' : ''}
+        {propiosFiltrados.length} servicio{propiosFiltrados.length !== 1 ? 's' : ''}
         {busqueda || categoriaFiltro !== 'todas' ? ' (filtrado)' : ''}
         {serviciosOcultos.length > 0 && (
           <span className="list-ocultos-hint">
@@ -146,13 +109,58 @@ export default function ServiceList({
         )}
       </div>
 
-      {/* Grupos normales */}
-      {Object.entries(porCategoria).map(([catKey, items]) => renderGrupo(catKey, items))}
+      {/* —— Sección Mamá —— */}
+      {serviciosMama.length > 0 && (
+        <div className="mama-section">
+          <button
+            className="mama-section-header"
+            onClick={() => setMamaExpandido(v => !v)}
+          >
+            <span className="mama-title">
+              👶 Servicios Mamá
+              {mamaPendientesCount > 0 && (
+                <span className="mama-badge">{mamaPendientesCount} pendiente{mamaPendientesCount !== 1 ? 's' : ''}</span>
+              )}
+            </span>
+            <span className="mama-toggle">{mamaExpandido ? '▲' : '▼'}</span>
+          </button>
 
-      {/* Grupo unificado Mama — al final */}
-      {serviciosMama.length > 0 && renderGrupo('vencimientos_mama', serviciosMama)}
+          {mamaExpandido && (
+            <div className="mama-body">
+              <p className="mama-hint">
+                📅 Vencen el <strong>día 10</strong> de cada mes — se generan automáticamente el 1ro.
+              </p>
+              <div className="mama-grid">
+                {serviciosMama.map(serv => (
+                  <ServiceCard
+                    key={serv.id || serv.nombre}
+                    servicio={serv}
+                    {...cardProps}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
-      {filtrados.length === 0 && (
+      {/* —— Lista principal por categoría —— */}
+      {Object.entries(porCategoria).map(([catKey, items]) => {
+        const cat = CATEGORIAS[catKey] || CATEGORIAS.otros;
+        return (
+          <div key={catKey} className="category-group">
+            <h3 className="category-group-title" style={{ borderColor: cat.color }}>
+              <span style={{ color: cat.color }}>{cat.emoji} {cat.label}</span>
+              <span className="category-count">{items.length}</span>
+            </h3>
+            {items.map(serv => (
+              <ServiceCard key={serv.id || serv.nombre} servicio={serv} {...cardProps} />
+            ))}
+          </div>
+        );
+      })}
+
+      {propiosFiltrados.length === 0 && serviciosMama.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">🔍</div>
           <h3>No se encontraron servicios</h3>
@@ -160,7 +168,7 @@ export default function ServiceList({
         </div>
       )}
 
-      {/* Servicios ocultos */}
+      {/* —— Servicios ocultos —— */}
       {mostrarOcultos && serviciosOcultos.length > 0 && (
         <div className="ocultos-section">
           <h3 className="ocultos-section-title">

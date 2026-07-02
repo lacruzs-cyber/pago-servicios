@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { esServicioAguinaldo, esMesAguinaldo } from '../utils/dateUtils';
 
 const EMO = {
   salud:'🏥', servicios:'🏠', telefonia:'📱', entretenimiento:'📺',
@@ -85,34 +84,14 @@ function fmtMonto(m) {
   return '$' + Number(m).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento }) {
+export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago, onAgregarVencimiento, onEditarVencimiento }) {
   const ahora = new Date();
   const mesActual = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
-  const esAguinaldoMes = esMesAguinaldo();
 
   const filas = useMemo(() => {
     const rows = [];
     for (const s of servicios) {
       if (SERVICIOS_OCULTOS_RESUMEN.includes(s.nombre)) continue;
-      
-      // Filtrar aguinaldos: si es aguinaldo y está pagado, o si no es mes de aguinaldo
-      if (esServicioAguinaldo(s.nombre)) {
-        // Si es aguinaldo...
-        if (!esAguinaldoMes) {
-          // ...y no estamos en junio/diciembre, saltarlo
-          continue;
-        }
-        // Si estamos en junio/diciembre pero está pagado este mes, también saltarlo
-        const pagadoEsteMes = (s.vencimientos || []).some(v =>
-          v.estado === 'S' &&
-          ((v.fechaPago || '').startsWith(mesActual) || (v.fechaVencimiento || '').startsWith(mesActual))
-        );
-        if (pagadoEsteMes) {
-          // Si está pagado este mes, no mostrar
-          continue;
-        }
-      }
-      
       const estado = calcEstado(s, mesActual);
       if (!estado) continue;
       rows.push({ s, estado, proximo: estado.proximo || null });
@@ -126,7 +105,7 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
       const fb = b.proximo?.fechaVencimiento || 'z';
       return fa.localeCompare(fb);
     });
-  }, [servicios, mesActual, esAguinaldoMes]);
+  }, [servicios, mesActual]);
 
   const pendCount    = filas.filter(f => ORDEN[f.estado.clase] <= 4).length;
   const vencidoCount = filas.filter(f => f.estado.clase === 'estado-vencido').length;
@@ -163,6 +142,8 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
 
       <div className="resumen-leyenda">
         <span className="leyenda-item"><span className="leyenda-icon">📅</span> Cargar vencimiento</span>
+        <span className="leyenda-sep">|</span>
+        <span className="leyenda-item"><span className="leyenda-icon">✏️</span> Editar vencimiento</span>
         <span className="leyenda-sep">|</span>
         <span className="leyenda-item"><span className="leyenda-icon">✅</span> Marcar como pagado</span>
       </div>
@@ -240,6 +221,14 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                       title="Cargar vencimiento"
                       onClick={() => onAgregarVencimiento(s)}
                     >📅</button>
+
+                    {proximo?.id && !esMultiple && (
+                      <button
+                        className="btn-icono btn-icono-editar"
+                        title="Editar vencimiento"
+                        onClick={() => onEditarVencimiento(s, proximo)}
+                      >✏️</button>
+                    )}
 
                     <button
                       className="btn-icono btn-icono-ok"

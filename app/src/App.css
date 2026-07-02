@@ -1047,4 +1047,6 @@ body {
 .btn-icono-pago:hover   { background: #F0FDF4; }
 .btn-icono-ok     { border-color: #6EE7B7; }
 .btn-icono-ok:hover     { background: #ECFDF5; }
+.btn-icono-editar { border-color: #FDE68A; }
+.btn-icono-editar:hover { background: #FFFBEB; }
 .btn-icono-disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--gray-200); }

@@ -129,6 +129,7 @@ export default function App() {
   const [modalVencimiento, setModalVencimiento]   = useState(null);
   const [modalRegistroPago, setModalRegistroPago] = useState(null);
   const [modalConfig, setModalConfig]             = useState(false);
+  const [modalEditar, setModalEditar]             = useState(null); // { servicio, vencimiento, initialValues }
   const [config, setConfig]                       = useState({});
   const [toast,  setToast]                        = useState(null);
 
@@ -298,6 +299,34 @@ export default function App() {
     } catch (err) {
       mostrarToast('Error al eliminar: ' + err.message, 'error');
     }
+  }
+
+  function handleEditarVencimiento(servicio, vencimiento) {
+    setModalEditar({
+      servicio,
+      vencimiento,
+      initialValues: {
+        fecha: vencimiento.fechaVencimiento || vencimiento._fecha,
+        monto: vencimiento.monto ?? vencimiento._monto,
+        notas: vencimiento.notas || vencimiento.comentarios || vencimiento._notas || '',
+      },
+    });
+  }
+
+  async function handleGuardarEdicion(datos) {
+    try {
+      await apiPatch(API + '/vencimientos/actualizar', {
+        id:               modalEditar.vencimiento.id,
+        monto:            datos.monto ?? null,
+        fechaVencimiento: datos.fecha,
+        comentarios:      datos.notas || null,
+      });
+      mostrarToast('✅ Vencimiento actualizado');
+      await cargarDatos();
+    } catch (err) {
+      mostrarToast('Error al actualizar: ' + err.message, 'error');
+    }
+    setModalEditar(null);
   }
 
   // -- Servicios --
@@ -553,6 +582,7 @@ export default function App() {
             onMarcarPagado={handleMarcarPagado}
             onRegistrarPago={s => setModalRegistroPago(s)}
             onAgregarVencimiento={s => setModalVencimiento(s)}
+            onEditarVencimiento={handleEditarVencimiento}
           />
         )}
         {!cargando && tab === 'servicios' && (
@@ -568,6 +598,7 @@ export default function App() {
             onOcultarServicio={handleOcultarServicio}
             onMostrarServicio={handleMostrarServicio}
             onRegistrarPago={s => setModalRegistroPago(s)}
+            onEditarVencimiento={handleEditarVencimiento}
           />
         )}
       </main>
@@ -592,6 +623,15 @@ export default function App() {
           modoRegistroPago={true}
           onGuardar={handleGuardarRegistroPago}
           onCerrar={() => setModalRegistroPago(null)}
+        />
+      )}
+      {modalEditar && (
+        <VencimientoForm
+          servicio={modalEditar.servicio}
+          modoEditar={true}
+          initialValues={modalEditar.initialValues}
+          onGuardar={handleGuardarEdicion}
+          onCerrar={() => setModalEditar(null)}
         />
       )}
       {modalConfig && (
