@@ -70,7 +70,7 @@ function calcEstado(s, mesActual) {
 
 const ORDEN = {
   'estado-vencido': 0, 'estado-hoy': 1, 'estado-urgente': 2,
-  'estado-proximo': 3, 'estado-normal': 4, 'estado-multiple': 5, 'estado-pagado': 6,
+  'estado-proximo': 3, 'estado-normal': 4, 'estado-pagado': 7,
 };
 
 function fmtFecha(f) {
@@ -104,11 +104,19 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
       rows.push({ s, estado, proximo: estado.proximo || null });
     }
     return rows.sort((a, b) => {
-      // esMultiple (NORA/ROSANA/AGUINALDO) siempre en posición fija: entre pendientes (0-4) y pagados (6)
-      const oa = a.estado.esMultiple ? 5 : (ORDEN[a.estado.clase] ?? 99);
-      const ob = b.estado.esMultiple ? 5 : (ORDEN[b.estado.clase] ?? 99);
-      if (oa !== ob) return oa - ob;
+      // 1. Mama siempre despues de no-mama (independiente del estado)
       if (a.estado.esMama !== b.estado.esMama) return a.estado.esMama ? 1 : -1;
+      // 2. Dentro del mismo grupo: esMultiple entre "con fecha" y "sin fecha"
+      function getOrd(row) {
+        if (row.estado.esMultiple) return 5;        // NORA/ROSANA/AGUINALDO: orden 5
+        const base = ORDEN[row.estado.clase] ?? 99;
+        if (base === 4 && !row.proximo?.fechaVencimiento) return 6; // pendiente sin fecha: orden 6
+        return base;
+      }
+      const oa = getOrd(a);
+      const ob = getOrd(b);
+      if (oa !== ob) return oa - ob;
+      // 3. Mismo orden: por fecha ascendente
       const fa = a.proximo?.fechaVencimiento || 'z';
       const fb = b.proximo?.fechaVencimiento || 'z';
       return fa.localeCompare(fb);
