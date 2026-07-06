@@ -15,25 +15,26 @@ El deploy se hace en **Railway** (gratis).
 ```
 Pago de Servicios/
 ├── supabase/
-│   ├── schema.sql              ← Schema PostgreSQL + seed de servicios (ejecutar en Supabase SQL Editor)
+│   ├── schema.sql              ← Schema PostgreSQL + seed de servicios
 │   ├── migrate-excel.js        ← Script de migración Excel → Supabase (ejecutar una sola vez)
-│   └── package.json            ← deps: @supabase/supabase-js, xlsx, dotenv
+│   └── package.json
 ├── app/                        ← Frontend React + Vite
 │   ├── src/
 │   │   ├── App.jsx             ← Componente raíz, toda la lógica de estado
 │   │   ├── App.css             ← Estilos globales
 │   │   ├── components/
-│   │   │   ├── Dashboard.jsx       ← Tab "Próximos vencimientos"
+│   │   │   ├── ResumenPage.jsx     ← Tab "Inicio" (tabla de vencimientos/dashboard)
 │   │   │   ├── ServiceList.jsx     ← Tab "Mis servicios" (lista + sección Mamá)
 │   │   │   ├── ServiceCard.jsx     ← Tarjeta individual de cada servicio
 │   │   │   ├── ServiceForm.jsx     ← Modal alta/edición de servicio
-│   │   │   ├── VencimientoForm.jsx ← Modal nuevo vencimiento / registrar pago
+│   │   │   ├── VencimientoForm.jsx ← Modal nuevo vencimiento / registrar pago / editar
 │   │   │   ├── ConfigModal.jsx     ← Modal configuración Google Calendar
-│   │   │   └── Modal.jsx           ← Wrapper de modal genérico
+│   │   │   ├── LoginPage.jsx       ← Pantalla de login
+│   │   │   └── Modal.jsx           ← Wrapper de modal genérico (arrastrble)
 │   │   ├── data/
 │   │   │   └── serviciosIniciales.js  ← Catálogo de servicios + CATEGORIAS
 │   │   └── utils/
-│   │       ├── storage.js          ← Persistencia localStorage (config, ocultos, gcal)
+│   │       ├── storage.js          ← Persistencia localStorage
 │   │       ├── dateUtils.js        ← Formateo fechas y etiquetas urgencia
 │   │       └── googleCalendar.js   ← Integración Google Calendar API
 │   ├── capacitor.config.ts     ← Config Capacitor para APK Android
@@ -42,12 +43,13 @@ Pago de Servicios/
 │   └── package.json
 ├── backend/
 │   ├── server.js               ← API Express con Supabase
+│   ├── .env                    ← SUPABASE_URL + SUPABASE_SERVICE_KEY (NO commitear)
 │   ├── .env.example            ← Template de variables de entorno
 │   └── package.json
+├── .env                        ← GITHUB_TOKEN + GITHUB_REPO (NO commitear, en raíz)
 ├── contexto/
 │   └── gastos 2026.xlsx        ← Planilla original (referencia, ya migrada a Supabase)
-├── render.yaml                 ← Config legacy Render (ya no se usa, deploy en Railway)
-├── .gitignore                  ← Excluye .env, dist/, *.xlsx
+├── .gitignore
 └── CLAUDE.md                   ← Este archivo
 ```
 
@@ -75,7 +77,7 @@ npm run dev      # corre en http://localhost:5173 con proxy a :3001
 ### Base de datos Supabase
 
 - Usa `@supabase/supabase-js` con `SUPABASE_SERVICE_KEY` (service_role key — acceso total, sin RLS)
-- **IMPORTANTE**: usar la key `service_role` (empieza con `eyJ...`), NO la `anon`/`publishable`
+- **IMPORTANTE**: usar la key `service_role` (JWT largo que empieza con `eyJ...`), NO la `anon`/`publishable` (empieza con `sb_publishable_...`)
 - Lee tablas `servicios` y `vencimientos` de Supabase PostgreSQL
 - En producción (`NODE_ENV=production`) también sirve el frontend estático desde `app/dist/`
 - Requiere `backend/.env` con `SUPABASE_URL` y `SUPABASE_SERVICE_KEY`
@@ -87,21 +89,15 @@ npm run dev      # corre en http://localhost:5173 con proxy a :3001
 | GET | `/api/servicios` | Lista de servicios agrupados con vencimientos |
 | GET | `/api/vencimientos` | Todos los vencimientos |
 | GET | `/api/vencimientos/pendientes` | Solo pendientes (estado ≠ "S") |
-| POST | `/api/vencimientos` | Crear nuevo vencimiento (body: `{servicioNombre, fecha, monto, notas, pagado?, esAutoGenerado?}`) |
+| POST | `/api/vencimientos` | Crear nuevo vencimiento |
 | PATCH | `/api/vencimientos/pagar` | Marcar como pagado (body: `{id, fechaPago, monto?}`) |
 | PATCH | `/api/vencimientos/actualizar` | Actualiza monto/fecha/comentarios (body: `{id, monto?, fechaVencimiento?, comentarios?}`) |
+| PATCH | `/api/vencimientos/calendar-event` | Guardar calendarEventId (body: `{id, calendarEventId}`) |
 | DELETE | `/api/vencimientos/:id` | Eliminar vencimiento |
 | POST | `/api/servicios` | Crear nuevo servicio |
 | PATCH | `/api/servicios/:nombre` | Editar servicio |
 | DELETE | `/api/servicios/:nombre` | Soft-delete (activo=false) |
-
-### Cálculo de mes/año al insertar
-
-El endpoint `POST /api/vencimientos` calcula automáticamente `mes` (ej: `"ABRIL"`) y `anio` (ej: `2026`) desde el campo `fecha` usando el array `MESES_ES`.
-
-### IDs de vencimientos
-
-Todos los vencimientos (migrados del Excel o creados manualmente) usan **UUID** de Supabase.
+| GET/PATCH | `/api/config` | Leer/guardar config (googleClientId) en Supabase tabla `app_settings` |
 
 ### Mapa de categorías (`CATEGORIAS_MAP`)
 
@@ -124,11 +120,10 @@ Todos los vencimientos (migrados del Excel o creados manualmente) usan **UUID** 
 
 ### Fuente única: API → Supabase
 
-Todos los datos vienen de la API (Supabase). No hay fusión con localStorage para vencimientos. El frontend llama a la API para toda operación de escritura y recarga los datos con `cargarDatos()` después de cada cambio.
+Todos los datos vienen de la API. No hay fusión con localStorage para vencimientos. El frontend llama a la API para toda operación de escritura y recarga los datos con `cargarDatos()` después de cada cambio.
 
 ### Normalización en `ServiceCard` (`norm(v)`)
 
-Convierte vencimientos de Supabase al formato interno:
 ```js
 _fecha:  v.fecha || v.fechaVencimiento
 _pagado: v.pagado === true || v.estado === 'S'
@@ -142,97 +137,152 @@ _notas:  v.notas || v.comentarios
 |-------|-----------|
 | `pagos_config` | `{ googleClientId }` |
 | `pagos_ocultos` | Array de nombres de servicios ocultos |
-| `pagos_gcal_sync` | Map de `"nombre|fecha"` → `calendarEventId` |
+| `pagos_gcal_sync` | Map de `"nombre\|fecha"` → `calendarEventId` |
 | `mama_gen_YYYY_MM` | Flag para no regenerar vencimientos Mamá en el mismo mes |
-
-> `pagos_servicios` ya no se usa. Los vencimientos manuales se guardan en Supabase.
+| `aguinaldo_gen_YYYY_MM` | Flag para no regenerar aguinaldos en el mismo mes |
 
 ---
 
 ## Funcionalidades implementadas
 
-### 1. Dashboard (tab "Próximos vencimientos")
-- Muestra todos los servicios visibles con vencimientos pendientes
-- Ordena por urgencia: vencidos → hoy → urgentes → próximos
-- Permite marcar como pagado directamente
+### 1. Dashboard / ResumenPage (tab "Inicio")
 
-### 2. Lista de servicios (tab "Mis servicios")
-- Filtro por nombre y categoría
-- Servicios agrupados por categoría
-- Cada tarjeta es expandible (muestra historial pagados)
+Tabla con todos los servicios visibles y su estado de vencimiento.
 
-### 3. Servicios Mamá — sección colapsable
-- Todos los servicios con `"MAMA"` en el nombre van a la sección especial
-- Header con gradiente teal, badge de pendientes, toggle colapsar
-- Hint: "Vencen el día 10 de cada mes"
-- Detección: `nombre.toUpperCase().includes('MAMA')`
+**Orden de filas** (de arriba a abajo):
+1. No-mama, vencido → hoy → urgente → próximo → pendiente CON fecha
+2. **NORA, ROSANA, AGUINALDO NORA, AGUINALDO ROSANA** (`esMultiple`, orden 5)
+3. No-mama, pendiente SIN fecha
+4. Servicios Mamá (siempre después de todos los no-mama)
+5. Al día
 
-### 4. Auto-generación de vencimientos Mamá
-- Se ejecuta en `cargarDatos()` al inicio de cada sesión vía `autoGenerarMama()`
-- Hace `POST /api/vencimientos` para crear el vencimiento del día 10 en Supabase
-- Flag `mama_gen_YYYY_MM` en localStorage evita llamadas duplicadas
-- Para re-testear: borrar `mama_gen_2026_04` de localStorage (DevTools → Application)
+**Acciones por fila:** 📅 Cargar vencimiento | ✏️ Editar vencimiento (solo si tiene ID) | ✅ Marcar como pagado
 
-### 5. Ocultar/restaurar servicios
-- `handleOcultarServicio(nombre)`: agrega nombre al array `ocultos` en localStorage
-- `handleMostrarServicio(nombre)`: lo quita
-- Servicios ocultos no aparecen en Dashboard ni en lista principal
-- En tab "Mis servicios", un link muestra la sección de servicios ocultos
-
-### 6. Registrar pago (con monto) — `handleGuardarRegistroPago`
-- Abre `VencimientoForm` en modo `modoRegistroPago={true}`
-- Si viene con `_vencimientoId`: hace `PATCH /api/vencimientos/pagar` con monto y fechaPago
-- Si no tiene `_vencimientoId`: busca cualquier vencimiento pendiente del mismo mes (`estado !== 'S'`) y lo actualiza; si no hay ninguno, crea uno nuevo con `POST /api/vencimientos`
-- Toast muestra el monto: `"✅ Pago registrado — $1.032.963"`
-
-### 7. Marcar pagado — `handleMarcarPagado`
-- Siempre usa `PATCH /api/vencimientos/pagar` → actualiza en Supabase
-- Luego recarga datos con `cargarDatos()`
-
-### 8. Fechas pasadas permitidas
-- `VencimientoForm` no tiene validación de fecha mínima
-- Permite registrar vencimientos y pagos con fechas anteriores a hoy
-
-### 9. Integración Google Calendar
-- Configurar con Google Client ID via modal ⚙️
-- Al guardar vencimiento: crea evento en Calendar si está conectado
-- Botón "Sincronizar": crea eventos para todos los pendientes futuros sin evento
-- Al marcar pagado: marca evento como completado
-
----
-
-## Lógica del botón en tarjeta colapsada
-
-```jsx
-// Si el vencimiento próximo tiene monto → botón directo (ya sabemos cuánto es)
-if (proximo._monto) {
-  // → "✅ Marcar como pagado" (sin formulario)
-} else {
-  // → "✅ Registrar pago (ingresá monto)" → abre VencimientoForm con _vencimientoId
-}
+**Servicios ocultos del dashboard:**
+```js
+const SERVICIOS_OCULTOS_RESUMEN = ['MARIEL'];
 ```
 
----
+**Servicios con tooltip anual (NORA y ROSANA):**
+- No muestran fecha ni monto en la tabla
+- Al pasar el mouse sobre el badge de estado, muestra tooltip con todos los pagos del año y sus montos
+- `const SERVICIOS_TOOLTIP_ANUAL = ['NORA', 'ROSANA']`
 
-## `VencimientoForm` — props
+**AGUINALDO NORA y AGUINALDO ROSANA:**
+- Solo aparecen en el dashboard en **junio (6)** y **diciembre (12)**
+- `const AGUINALDO_MESES_VALIDOS = [6, 12]`
+
+### 2. Auto-generación de vencimientos Mamá
+
+- Se ejecuta en `cargarDatos()` via `autoGenerarMama()`
+- Crea vencimiento del día 10 de cada mes para servicios con "MAMA" en el nombre
+- Flag `mama_gen_YYYY_MM` en localStorage evita duplicados
+
+### 3. Auto-generación de vencimientos Aguinaldo
+
+- Se ejecuta en `cargarDatos()` via `autoGenerarAguinaldo()`
+- Solo corre en **junio** (crea fecha 30/06) y **diciembre** (crea fecha 31/12)
+- Flag `aguinaldo_gen_YYYY_MM` en localStorage evita duplicados
+- Servicios afectados: los que tienen "AGUINALDO" en el nombre (`permiteMultiplesPagos=true`)
+
+### 4. Servicios con múltiples pagos por mes (`permiteMultiplesPagos`)
+
+Servicios: **NORA, ROSANA, AGUINALDO NORA, AGUINALDO ROSANA, MARIEL**
+
+Comportamiento en `calcEstado`:
+- Si hay pagos este mes → clase `estado-multiple`, label "N pagos", `esMultiple: true`
+- Si no hay pagos → clase `estado-normal`, `esMultiple: true`
+- Siempre tienen `esMultiple: true` en el objeto de estado
+
+En el dashboard: siempre van al orden 5 (entre fechados y sin fecha).
+
+### 5. Servicios sin Google Calendar
+
+```js
+const SERVICIOS_SIN_CALENDAR = ['NORA', 'ROSANA', 'AGUINALDO NORA', 'AGUINALDO ROSANA', 'MARIEL'];
+```
+
+Estos servicios nunca crean ni sincronizan eventos en Google Calendar.
+
+### 6. Modales arrastrables (Modal.jsx)
+
+Todos los modales (VencimientoForm, ServiceForm, ConfigModal) se pueden arrastrar con mouse o touch.
+
+Implementación con Pointer Events API en `Modal.jsx`:
+- `onPointerDown` en el header inicia el drag
+- `setPointerCapture` para tracking fuera del elemento
+- `hasDragged` ref previene que cerrar el modal al soltar
+- Posición via `style={{ position: 'relative', left: offset.x, top: offset.y }}`
+
+### 7. Input de monto inteligente (VencimientoForm.jsx)
+
+- Formato argentino: punto = separador de miles, coma = decimal (ej: `1.234.567,89`)
+- La tecla `.` del teclado numérico se interpreta como coma decimal
+- El valor de referencia (último monto) se muestra como hint en el label, NO en el input
+- Estado separado `montoRaw` para el valor sin formatear
+- Props nuevas: `modoEditar`, `initialValues` (para pre-cargar fecha y monto al editar)
 
 ```jsx
 <VencimientoForm
-  servicio={servicio}           // objeto servicio (puede incluir _vencimientoId, _fechaVenc)
-  modoRegistroPago={true|false} // false = nuevo vencimiento, true = registrar pago
-  onGuardar={fn}                // recibe { fecha, monto, notas, pagado?, fechaPago? }
+  servicio={servicio}
+  modoRegistroPago={bool}   // false=nuevo, true=registrar pago
+  modoEditar={bool}         // true=editar vencimiento existente
+  initialValues={{ fecha, monto, notas }}
+  onGuardar={fn}
   onCerrar={fn}
 />
 ```
 
-En `modoRegistroPago`:
-- Fecha inicial = hoy (`fechaHoy()`)
-- Título: "Registrar pago — {nombre}"
-- `onGuardar` agrega `{ pagado: true, fechaPago: form.fecha }`
+### 8. Editar vencimiento (✏️)
+
+- Botón ✏️ disponible en el dashboard (ResumenPage) y en ServiceCard (vista expandida > Pendientes)
+- Solo aparece si el vencimiento tiene `id` (no es de Excel)
+- Abre `VencimientoForm` en modo `modoEditar=true`, pre-cargando fecha y monto
+- Guarda via `PATCH /api/vencimientos/actualizar`
+
+En App.jsx:
+```js
+const [modalEditar, setModalEditar] = useState(null); // { servicio, vencimiento, initialValues }
+
+function handleEditarVencimiento(servicio, vencimiento) { ... }
+async function handleGuardarEdicion(datos) { 
+  await apiPatch(API + '/vencimientos/actualizar', { id, monto, fechaVencimiento, comentarios });
+}
+```
+
+### 9. Ocultar/restaurar servicios
+
+- `handleOcultarServicio(nombre)` → agrega a `ocultos` en localStorage
+- `handleMostrarServicio(nombre)` → lo quita
+- Servicios ocultos no aparecen en Dashboard ni en lista principal
+
+### 10. Google Calendar
+
+- Client ID hardcodeado como default: `987611899031-7d8qbnul2e7u5mah6isvlt9mrii1c4al.apps.googleusercontent.com`
+- Se persiste en Supabase tabla `app_settings` para sincronizar entre dispositivos
+- Botón "Sincronizar" deduplica eventos antes de crear nuevos
+- Servicios en `SERVICIOS_SIN_CALENDAR` nunca crean eventos
 
 ---
 
-## CATEGORIAS — `src/data/serviciosIniciales.js`
+## Servicios registrados
+
+### Propios
+OSDE, EDESUR, METROGAS, AYSA, MUNICIPAL, CABLEVISION, PERSONAL, PERSONAL MOVIL, PERSONAL HOGAR, MONOTRIBUTO (ROCIO), CAJA PREVISION ROCIO, ARBA, PATENTE DEL AUTO, SEGURO AUTO, SEGURO CAJERO, SEGURO VIDA, TARJETA NATIVA VISA, TARJETA NATIVA MASTER
+
+### Especiales (permiteMultiplesPagos=true, sin Calendar)
+NORA, ROSANA, AGUINALDO NORA, AGUINALDO ROSANA, MARIEL
+
+NORA y ROSANA: tooltip anual en badge, sin fecha/monto en la tabla.
+MARIEL: oculto del dashboard (`SERVICIOS_OCULTOS_RESUMEN`).
+AGUINALDO NORA/ROSANA: solo visibles en junio y diciembre.
+
+### Mamá (vencen el día 10, auto-generados al inicio del mes)
+AYSA MAMA, EDESUR MAMA, METROGAS MAMA, IOMA MAMA, MUNICIPAL MAMA, ARBA MAMA
+
+---
+
+## CATEGORIAS
 
 ```js
 salud           → 🏥 azul
@@ -257,28 +307,14 @@ otros           → 📌 gris
 - Build command: `cd app && npm install && npm run build && cd ../backend && npm install`
 - Start command: `cd backend && node server.js`
 - Variables de entorno: `NODE_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
-- El backend sirve el frontend estático en producción (no hace falta hosting separado)
+- El backend sirve el frontend estático en producción
 - Free tier: $5 crédito/mes, el servicio NO duerme
 
 ### APK Android (Capacitor)
-- Proyecto Android en `app/android/` (generado con `npx cap add android`)
+- Proyecto Android en `app/android/`
 - App ID: `com.pagodeservicios.app`
 - Para buildear: crear `app/.env.production` con `VITE_API_URL=https://pago-servicios-production.up.railway.app`
-- Comandos: `npm run build` → `npx cap sync android` → abrir en Android Studio → Build APK
-- Ver `INSTRUCCIONES_DEPLOY.md` para pasos completos
-
-### API URL dinámica (frontend)
-```js
-// Dev: proxy vite (/api → localhost:3001)
-// Android: URL completa del backend en Railway
-const API = (import.meta.env.VITE_API_URL || '') + '/api';
-```
-
-### Migración Excel → Supabase
-- Script único: `cd supabase && npm install && node migrate-excel.js`
-- Lee `contexto/gastos 2026.xlsx` e inserta todos los vencimientos en Supabase
-- Auto-inserta servicios del Excel que no existen en la tabla `servicios`
-- Solo se ejecuta una vez (no hace deduplicación)
+- Comandos: `npm run build` → `npx cap sync android` → Android Studio → Build APK
 
 ---
 
@@ -286,40 +322,78 @@ const API = (import.meta.env.VITE_API_URL || '') + '/api';
 
 **Los archivos locales son siempre la fuente de verdad.** Nunca usar los archivos del clone de GitHub para sobrescribir los locales.
 
-Para hacer commits automáticos:
-1. Leer token desde `.env` del proyecto (`GITHUB_TOKEN`)
-2. `rm -rf /tmp/pago-repo && git clone "https://${TOKEN}@github.com/lacruzs-cyber/pago-servicios.git" /tmp/pago-repo`
-3. Copiar SOLO los archivos modificados: `cp /local/archivo /tmp/pago-repo/archivo`
-4. Verificar con `tail -5` y `wc -l` que no estén truncados
-5. `git add ... && git commit -m "..." && git push --no-progress "https://${TOKEN}@..." main`
+```bash
+# Token en .env de la RAÍZ del proyecto (no en backend/.env)
+TOKEN=$(grep GITHUB_TOKEN /ruta/local/.env | cut -d= -f2 | tr -d ' \r\n')
 
-Railway redeploya automáticamente con cada push. No pedirle al usuario que haga nada manualmente.
+rm -rf /tmp/repo-sync
+git clone "https://${TOKEN}@github.com/lacruzs-cyber/pago-servicios.git" /tmp/repo-sync
+git config user.email "lacruzs@gmail.com"
+git config user.name "Sebastian"
+
+# Comparar ANTES de copiar
+diff /local/archivo /tmp/repo-sync/archivo
+
+# Copiar SOLO archivos modificados (local → clone, NUNCA al revés)
+cp /local/archivo /tmp/repo-sync/archivo
+
+# Verificar que no estén truncados
+wc -l /tmp/repo-sync/archivo
+tail -3 /tmp/repo-sync/archivo
+
+# Build test SIEMPRE antes de pushear
+cd /tmp/repo-sync/app && npm install && npm run build
+
+# Push
+cd /tmp/repo-sync
+git add archivo
+git commit -m "descripción"
+git push origin main
+```
+
+Railway redeploya automáticamente con cada push.
 
 ---
 
-## Consideraciones técnicas importantes
+## Consideraciones técnicas CRÍTICAS
 
-### Escritura de archivos JSX en este entorno
-- El carácter `!` en bash causa problemas de expansión → **nunca usar heredoc bash para JSX**
-- Los archivos JSX con `!` se generan con scripts Python en `/outputs/`, luego se ejecutan con `python3 gen_script.py`
-- Los emojis en Python deben usar `\U0001FXXX` (8 dígitos, mayúscula), NO surrogate pairs `\ud83d\uXXXX`, NO notación JS `\u{1F4B3}`
-- La herramienta Write trunca archivos >~3600 bytes en el mount de Windows → usar gen scripts Python para archivos grandes
+### Truncación de archivos JSX en Windows mount
+
+**PROBLEMA**: La herramienta `Write` trunca archivos >~3600 bytes en el mount de Windows (`D:\Desarrollo\...`). Los archivos quedan cortados sin error visible, causando fallos de build silenciosos en Railway.
+
+**SÍNTOMA**: `wc -l archivo.jsx` muestra menos líneas de las esperadas; el archivo termina a mitad de un bloque JSX.
+
+**SOLUCIÓN OBLIGATORIA** para archivos JSX grandes:
+1. Nunca usar `Write` directo para archivos >3600 bytes en el mount Windows
+2. Usar scripts Python para generar/modificar archivos:
+   ```python
+   with open('/sessions/.../mnt/Pago de Servicios/app/src/...jsx', 'w', encoding='utf-8') as f:
+       f.write(content)
+   ```
+3. Para ediciones pequeñas: usar la herramienta `Edit` (solo envía el diff, no trunca)
+4. Siempre verificar con `wc -l` y `tail -5` después de escribir
+5. Hacer `npm run build` en el clone antes de pushear
+
+### Emojis en Python
+- Usar `\U0001FXXX` (8 dígitos, mayúscula): `'\U0001F4B3'` = 💳
+- NO usar surrogate pairs `\ud83d\uXXXX`
+- NO usar notación JS `\u{1F4B3}`
+
+### Git: formato del token
+```bash
+# CORRECTO:
+git clone "https://${TOKEN}@github.com/lacruzs-cyber/pago-servicios.git"
+git remote set-url origin "https://${TOKEN}@github.com/lacruzs-cyber/pago-servicios.git"
+
+# INCORRECTO (falla):
+"https://x-token:${TOKEN}@github.com/..."
+```
 
 ### Supabase service_role key
 - La key en `backend/.env` debe ser la `service_role` (JWT largo que empieza con `eyJ...`)
-- Se obtiene en Supabase → Project Settings → API → Project API keys → service_role
 - NO usar la key `anon`/`publishable` (empieza con `sb_publishable_...`)
+- Se obtiene en: Supabase → Project Settings → API → Project API keys → service_role
 
 ### Proxy Vite
 - `vite.config.js` tiene `proxy: { '/api': 'http://localhost:3001' }`
-- El frontend usa simplemente `(import.meta.env.VITE_API_URL || '') + '/api'`
-
----
-
-## Servicios registrados
-
-### Propios
-OSDE, EDESUR, METROGAS, AYSA, MUNICIPAL, CABLEVISION, PERSONAL, PERSONAL HOGAR, MONOTRIBUTO (ROCIO), CAJA PREVISION ROCIO, ARBA, PATENTE DEL AUTO, SEGURO AUTO, SEGURO CAJERO, SEGURO VIDA, TARJETA NATIVA VISA, TARJETA NATIVA MASTER
-
-### Mamá (vencen el día 10, se auto-generan en Supabase al inicio del mes)
-AYSA MAMA, EDESUR MAMA, METROGAS MAMA, IOMA MAMA, MUNICIPAL MAMA, ARBA MAMA
+- El frontend usa: `const API = (import.meta.env.VITE_API_URL || '') + '/api'`
