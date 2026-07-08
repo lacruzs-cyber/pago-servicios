@@ -37,8 +37,8 @@ function calcEstado(s, mesActual) {
         label: pagosEsteMes.length + ' pago' + (pagosEsteMes.length !== 1 ? 's' : ''),
         emoji: '💰', esMama: false, pagosEsteMes, pagosEsteAnio, esMultiple: true };
     }
-    return { clase: 'estado-normal', label: 'Pendiente', emoji: '🟢',
-      esMama: false, pagosEsteMes: [], pagosEsteAnio, esMultiple: true };
+    // Sin pagos este mes: no aparece en el dashboard (no son vencimientos, son registros de pago)
+    return null;
   }
 
   if (venc.length === 0) return null;
@@ -234,8 +234,8 @@ export default function ResumenPage({ servicios, onMarcarPagado, onRegistrarPago
                   <td className="col-acciones-cell">
                     <button
                       className="btn-icono btn-icono-cargar"
-                      title="Cargar vencimiento"
-                      onClick={() => onAgregarVencimiento(s)}
+                      title={esMultiple ? 'Registrar pago' : 'Cargar vencimiento'}
+                      onClick={() => esMultiple ? onRegistrarPago(s) : onAgregarVencimiento(s)}
                     >📅</button>
 
                     {proximo?.id && !esMultiple && (
