@@ -216,7 +216,7 @@ export default function ServiceCard({
           {pagados.length > 0 && (
             <div className="venc-section venc-pagados">
               <h4 className="venc-section-title">Historial pagados</h4>
-              {pagados.slice(0, 5).map(v => (
+              {pagados.map(v => (
                 <div key={v.id} className="venc-item venc-item-pagado">
                   <div className="venc-item-info">
                     <span className="venc-fecha">{formatFecha(v._fecha)}</span>
@@ -224,6 +224,15 @@ export default function ServiceCard({
                     {v._monto && <span className="venc-monto">${fmt(v._monto)}</span>}
                     {v.mes && <span className="venc-notas">{v.mes} {v.anio}</span>}
                     {v.fechaPago && <span className="venc-notas">el {formatFecha(v.fechaPago)}</span>}
+                  </div>
+                  <div className="venc-item-actions">
+                    {!v.esExcel && v.id && (
+                      <button className="btn btn-danger btn-xs"
+                        onClick={() => onEliminarVencimiento(sid, v.id)}
+                        title="Eliminar">
+                        🗑
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
