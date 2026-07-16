@@ -3,10 +3,10 @@
 ## Descripción general
 
 Aplicación web + Android para administrar el vencimiento y pago de servicios del hogar.  
-Stack: **React 19 + Vite** (frontend) + **Node.js/Express** (backend) + **Supabase PostgreSQL** (base de datos).  
-El backend lee/escribe datos en Supabase (reemplazó al Excel original con SheetJS).  
+Stack: **React 19 + Vite** (frontend) + **Supabase PostgreSQL** (base de datos).  
+El frontend llama a Supabase directamente (sin backend Express).  
 La app puede instalarse como **APK Android** usando Capacitor.  
-El deploy se hace en **Railway** (gratis).
+El deploy se hace en **Vercel** (gratuito, sin sleep).
 
 ---
 
@@ -22,6 +22,9 @@ Pago de Servicios/
 │   ├── src/
 │   │   ├── App.jsx             ← Componente raíz, toda la lógica de estado
 │   │   ├── App.css             ← Estilos globales
+│   │   ├── lib/
+│   │   │   ├── supabase.js         ← Cliente Supabase (VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY)
+│   │   │   └── db.js               ← Todas las funciones de BD (reemplaza Express)
 │   │   ├── components/
 │   │   │   ├── ResumenPage.jsx     ← Tab "Inicio" (tabla de vencimientos/dashboard)
 │   │   │   ├── ServiceList.jsx     ← Tab "Mis servicios" (lista + sección Mamá)
@@ -29,8 +32,8 @@ Pago de Servicios/
 │   │   │   ├── ServiceForm.jsx     ← Modal alta/edición de servicio
 │   │   │   ├── VencimientoForm.jsx ← Modal nuevo vencimiento / registrar pago / editar
 │   │   │   ├── ConfigModal.jsx     ← Modal configuración Google Calendar
-│   │   │   ├── LoginPage.jsx       ← Pantalla de login
-│   │   │   └── Modal.jsx           ← Wrapper de modal genérico (arrastrble)
+│   │   │   ├── LoginPage.jsx       ← Pantalla de login (client-side, usa VITE_APP_PASSWORD)
+│   │   │   └── Modal.jsx           ← Wrapper de modal genérico (arrastrable)
 │   │   ├── data/
 │   │   │   └── serviciosIniciales.js  ← Catálogo de servicios + CATEGORIAS
 │   │   └── utils/
@@ -38,14 +41,11 @@ Pago de Servicios/
 │   │       ├── dateUtils.js        ← Formateo fechas y etiquetas urgencia
 │   │       └── googleCalendar.js   ← Integración Google Calendar API
 │   ├── capacitor.config.ts     ← Config Capacitor para APK Android
-│   ├── .env.production.example ← Template para VITE_API_URL (build Android)
-│   ├── vite.config.js          ← Proxy /api → localhost:3001
-│   └── package.json
-├── backend/
-│   ├── server.js               ← API Express con Supabase
-│   ├── .env                    ← SUPABASE_URL + SUPABASE_SERVICE_KEY (NO commitear)
-│   ├── .env.example            ← Template de variables de entorno
-│   └── package.json
+│   ├── .env.local              ← Variables locales (NO commitear)
+│   ├── .env.production.example ← Template para build Android
+│   ├── vercel.json             ← Config Vercel (SPA routing)
+│   └── vite.config.js          ← Configuración Vite
+├── backend/                    ← (OBSOLETO - ya no se usa, conservado por referencia)
 ├── .env                        ← GITHUB_TOKEN + GITHUB_REPO (NO commitear, en raíz)
 ├── contexto/
 │   └── gastos 2026.xlsx        ← Planilla original (referencia, ya migrada a Supabase)
@@ -55,75 +55,104 @@ Pago de Servicios/
 
 ---
 
-## Arranque del proyecto
+## Variables de entorno
 
-```bash
-# Prerequisito: crear backend/.env con SUPABASE_URL y SUPABASE_SERVICE_KEY
+### Desarrollo local (`app/.env.local` — NO commitear)
+```
+VITE_SUPABASE_URL=https://himchcizeowsfihxtimj.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8
+VITE_APP_PASSWORD=radiohead
+```
 
-# Terminal 1 — Backend
-cd backend
-npm install      # primera vez
-node server.js   # corre en http://localhost:3001
+### Producción Vercel (configurar en el dashboard de Vercel)
+```
+VITE_SUPABASE_URL=https://himchcizeowsfihxtimj.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8
+VITE_APP_PASSWORD=radiohead
+```
 
-# Terminal 2 — Frontend
-cd app
-npm run dev      # corre en http://localhost:5173 con proxy a :3001
+### Android APK (`app/.env.production`)
+```
+VITE_SUPABASE_URL=https://himchcizeowsfihxtimj.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8
+VITE_APP_PASSWORD=radiohead
 ```
 
 ---
 
-## Backend — `backend/server.js`
+## Arranque del proyecto
 
-### Base de datos Supabase
+```bash
+# Solo frontend (ya no hay backend)
+cd app
+npm install      # primera vez
+npm run dev      # corre en http://localhost:5173
+```
 
-- Usa `@supabase/supabase-js` con `SUPABASE_SERVICE_KEY` (service_role key — acceso total, sin RLS)
-- **IMPORTANTE**: usar la key `service_role` (JWT largo que empieza con `eyJ...`), NO la `anon`/`publishable` (empieza con `sb_publishable_...`)
-- Lee tablas `servicios` y `vencimientos` de Supabase PostgreSQL
-- En producción (`NODE_ENV=production`) también sirve el frontend estático desde `app/dist/`
-- Requiere `backend/.env` con `SUPABASE_URL` y `SUPABASE_SERVICE_KEY`
+---
 
-### Endpoints
+## Supabase — Acceso directo desde el frontend
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/servicios` | Lista de servicios agrupados con vencimientos |
-| GET | `/api/vencimientos` | Todos los vencimientos |
-| GET | `/api/vencimientos/pendientes` | Solo pendientes (estado ≠ "S") |
-| POST | `/api/vencimientos` | Crear nuevo vencimiento |
-| PATCH | `/api/vencimientos/pagar` | Marcar como pagado (body: `{id, fechaPago, monto?}`) |
-| PATCH | `/api/vencimientos/actualizar` | Actualiza monto/fecha/comentarios (body: `{id, monto?, fechaVencimiento?, comentarios?}`) |
-| PATCH | `/api/vencimientos/calendar-event` | Guardar calendarEventId (body: `{id, calendarEventId}`) |
-| DELETE | `/api/vencimientos/:id` | Eliminar vencimiento |
-| POST | `/api/servicios` | Crear nuevo servicio |
-| PATCH | `/api/servicios/:nombre` | Editar servicio |
-| DELETE | `/api/servicios/:nombre` | Soft-delete (activo=false) |
-| GET/PATCH | `/api/config` | Leer/guardar config (googleClientId) en Supabase tabla `app_settings` |
+### Base de datos
+- Tablas: `servicios`, `vencimientos`, `app_settings`
+- Key usada: `VITE_SUPABASE_ANON_KEY` (publishable key — sáfe para exponer en frontend)
+- Si alguna operación falla por permisos, verificar que RLS esté deshabilitado en Supabase o configurar policies para anon role
 
-### Mapa de categorías (`CATEGORIAS_MAP`)
-
+### `app/src/lib/supabase.js`
 ```js
-"OSDE" → "salud"
-"EDESUR" / "METROGAS" / "AYSA" / "MUNICIPAL" → "servicios"
-"PERSONAL" / "PERSONAL MOVIL" / "PERSONAL HOGAR" → "telefonia"
-"CABLEVISION" → "entretenimiento"
-"MONOTRIBUTO (ROCIO)" / "CAJA PREVISION ROCIO" / "ARBA" / "PATENTE DEL AUTO" → "impuestos"
-"SEGURO AUTO" / "SEGURO CAJERO" / "SEGURO VIDA" → "seguros"
-"TARJETA NATIVA VISA" / "TARJETA NATIVA MASTER" → "tarjetas"
-"AYSA MAMA" / "EDESUR MAMA" / "METROGAS MAMA" / "MUNICIPAL MAMA" → "servicios_mama"
-"IOMA MAMA" → "salud_mama"
-"ARBA MAMA" → "impuestos_mama"
+import { createClient } from '@supabase/supabase-js';
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+```
+
+### `app/src/lib/db.js` — Funciones exportadas
+
+| Función | Descripción |
+|--------|-------------|
+| `getServicios()` | Lista servicios activos + vencimientos anidados (fmtVenc) |
+| `crearVencimiento({servicioNombre, fecha, monto, notas, pagado, fechaPago, esAutoGenerado, calendarEventId})` | Crear vencimiento |
+| `pagarVencimiento({id, fechaPago, monto})` | Marcar como pagado (estado='S') |
+| `actualizarVencimiento({id, monto, fechaVencimiento, comentarios})` | Editar vencimiento |
+| `actualizarCalendarEvent({id, calendarEventId})` | Guardar calendarEventId |
+| `eliminarVencimiento(id)` | Eliminar vencimiento |
+| `crearServicio({nombre, categoria, diaEstimado, notas})` | Crear nuevo servicio |
+| `actualizarServicio(nombre, {categoria, diaEstimado, notas})` | Editar servicio |
+| `eliminarServicio(nombre)` | Soft-delete (activo=false) |
+| `getConfig()` | Leer app_settings (googleClientId) |
+| `setConfig({googleClientId})` | Upsert en app_settings |
+
+### Mapeo DB → frontend (`fmtVenc`)
+```js
+id, anio, mes,
+descripcion      ← servicio_nombre
+fechaVencimiento ← fecha_vencimiento
+fechaPago        ← fecha_pago
+monto            ← parseFloat(monto)
+estado           ← estado || 'N'
+comentarios      ← comentarios
+calendarEventId  ← calendar_event_id || null
+esManual         ← es_manual
+esAutoGenerado   ← es_auto_generado
 ```
 
 ---
 
 ## Frontend — arquitectura de datos
 
-### Fuente única: API → Supabase
+### Fuente única: Supabase directo
+Todos los datos vienen de Supabase vía `db.js`. El frontend llama a estas funciones para toda operación de escritura y recarga los datos con `cargarDatos()` después de cada cambio.
 
-Todos los datos vienen de la API. No hay fusión con localStorage para vencimientos. El frontend llama a la API para toda operación de escritura y recarga los datos con `cargarDatos()` después de cada cambio.
+### Naming en App.jsx
+- `config` = estado React (`useState({})`) — setter es `setConfigState` (para evitar conflicto con `setConfig` importada de db.js)
+- `saveConfig` = alias de `setConfig` de db.js (guarda en Supabase)
+- `dbEliminarVencimiento` = alias de `eliminarVencimiento` de db.js (para no conflicto con la función del handler)
+
+### Login (client-side)
+`LoginPage.jsx` compara la contraseña con `VITE_APP_PASSWORD` (default: `'radiohead'`). No requiere backend.
 
 ### Normalización en `ServiceCard` (`norm(v)`)
-
 ```js
 _fecha:  v.fecha || v.fechaVencimiento
 _pagado: v.pagado === true || v.estado === 'S'
@@ -137,7 +166,7 @@ _notas:  v.notas || v.comentarios
 |-------|-----------|
 | `pagos_config` | `{ googleClientId }` |
 | `pagos_ocultos` | Array de nombres de servicios ocultos |
-| `pagos_gcal_sync` | Map de `"nombre\|fecha"` → `calendarEventId` |
+| `pagos_gcal_sync` | Map de `"nombre|fecha"` → `calendarEventId` |
 | `mama_gen_YYYY_MM` | Flag para no regenerar vencimientos Mamá en el mismo mes |
 | `aguinaldo_gen_YYYY_MM` | Flag para no regenerar aguinaldos en el mismo mes |
 
@@ -191,8 +220,8 @@ Servicios: **NORA, ROSANA, AGUINALDO NORA, AGUINALDO ROSANA, MARIEL**
 
 Comportamiento en `calcEstado`:
 - Si hay pagos este mes → clase `estado-multiple`, label "N pagos", `esMultiple: true`
-- Si no hay pagos → clase `estado-normal`, `esMultiple: true`
-- Siempre tienen `esMultiple: true` en el objeto de estado
+- Si no hay pagos → `null` (no aparecen en el dashboard — son registros de pago, no vencimientos)
+- Botón 📅 en dashboard abre "Registrar pago" directamente (no crea pendiente)
 
 En el dashboard: siempre van al orden 5 (entre fechados y sin fecha).
 
@@ -222,41 +251,25 @@ Implementación con Pointer Events API en `Modal.jsx`:
 - Estado separado `montoRaw` para el valor sin formatear
 - Props nuevas: `modoEditar`, `initialValues` (para pre-cargar fecha y monto al editar)
 
-```jsx
-<VencimientoForm
-  servicio={servicio}
-  modoRegistroPago={bool}   // false=nuevo, true=registrar pago
-  modoEditar={bool}         // true=editar vencimiento existente
-  initialValues={{ fecha, monto, notas }}
-  onGuardar={fn}
-  onCerrar={fn}
-/>
-```
-
 ### 8. Editar vencimiento (✏️)
 
 - Botón ✏️ disponible en el dashboard (ResumenPage) y en ServiceCard (vista expandida > Pendientes)
-- Solo aparece si el vencimiento tiene `id` (no es de Excel)
+- Solo aparece si el vencimiento tiene `id` (no es de Excel) y `!esMultiple`
 - Abre `VencimientoForm` en modo `modoEditar=true`, pre-cargando fecha y monto
-- Guarda via `PATCH /api/vencimientos/actualizar`
+- Guarda via `actualizarVencimiento({id, monto, fechaVencimiento, comentarios})` de db.js
 
-En App.jsx:
-```js
-const [modalEditar, setModalEditar] = useState(null); // { servicio, vencimiento, initialValues }
+### 9. Eliminar vencimientos (historial + pendientes)
 
-function handleEditarVencimiento(servicio, vencimiento) { ... }
-async function handleGuardarEdicion(datos) { 
-  await apiPatch(API + '/vencimientos/actualizar', { id, monto, fechaVencimiento, comentarios });
-}
-```
+- Botón 🗑 en pendientes Y en historial de pagados de ServiceCard
+- Muestra TODOS los pagados (sin límite de 5)
+- Llama a `eliminarVencimiento(id)` de db.js
 
-### 9. Ocultar/restaurar servicios
+### 10. Ocultar/restaurar servicios
 
 - `handleOcultarServicio(nombre)` → agrega a `ocultos` en localStorage
 - `handleMostrarServicio(nombre)` → lo quita
-- Servicios ocultos no aparecen en Dashboard ni en lista principal
 
-### 10. Google Calendar
+### 11. Google Calendar
 
 - Client ID hardcodeado como default: `987611899031-7d8qbnul2e7u5mah6isvlt9mrii1c4al.apps.googleusercontent.com`
 - Se persiste en Supabase tabla `app_settings` para sincronizar entre dispositivos
@@ -300,20 +313,26 @@ otros           → 📌 gris
 
 ---
 
-## Deploy y Android
+## Deploy — Vercel (producción actual)
 
-### Railway
-- URL: `https://pago-servicios-production.up.railway.app`
-- Build command: `cd app && npm install && npm run build && cd ../backend && npm install`
-- Start command: `cd backend && node server.js`
-- Variables de entorno: `NODE_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
-- El backend sirve el frontend estático en producción
-- Free tier: $5 crédito/mes, el servicio NO duerme
+### Setup inicial en Vercel
+1. Ir a [vercel.com](https://vercel.com) → New Project
+2. Importar repositorio: `lacruzs-cyber/pago-servicios`
+3. **Root Directory**: `app` (importante!)
+4. Framework: Vite (auto-detectado)
+5. Variables de entorno:
+   - `VITE_SUPABASE_URL` = `https://himchcizeowsfihxtimj.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` = `sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8`
+   - `VITE_APP_PASSWORD` = `radiohead`
+6. Deploy → Vercel genera una URL tipo `pago-servicios.vercel.app`
 
-### APK Android (Capacitor)
+### Redeploy automático
+Cada `git push origin main` triggeriza un nuevo deploy en Vercel.
+
+### Android APK (Capacitor)
 - Proyecto Android en `app/android/`
 - App ID: `com.pagodeservicios.app`
-- Para buildear: crear `app/.env.production` con `VITE_API_URL=https://pago-servicios-production.up.railway.app`
+- Para buildear: crear `app/.env.production` con las variables de Supabase
 - Comandos: `npm run build` → `npx cap sync android` → Android Studio → Build APK
 
 ---
@@ -330,9 +349,6 @@ rm -rf /tmp/repo-sync
 git clone "https://${TOKEN}@github.com/lacruzs-cyber/pago-servicios.git" /tmp/repo-sync
 git config user.email "lacruzs@gmail.com"
 git config user.name "Sebastian"
-
-# Comparar ANTES de copiar
-diff /local/archivo /tmp/repo-sync/archivo
 
 # Copiar SOLO archivos modificados (local → clone, NUNCA al revés)
 cp /local/archivo /tmp/repo-sync/archivo
@@ -351,7 +367,7 @@ git commit -m "descripción"
 git push origin main
 ```
 
-Railway redeploya automáticamente con cada push.
+Vercel redeploya automáticamente con cada push.
 
 ---
 
@@ -359,7 +375,7 @@ Railway redeploya automáticamente con cada push.
 
 ### Truncación de archivos JSX en Windows mount
 
-**PROBLEMA**: La herramienta `Write` trunca archivos >~3600 bytes en el mount de Windows (`D:\Desarrollo\...`). Los archivos quedan cortados sin error visible, causando fallos de build silenciosos en Railway.
+**PROBLEMA**: La herramienta `Write` trunca archivos >~3600 bytes en el mount de Windows (`D:\Desarrollo\...`). Los archivos quedan cortados sin error visible, causando fallos de build silenciosos en Vercel.
 
 **SÍNTOMA**: `wc -l archivo.jsx` muestra menos líneas de las esperadas; el archivo termina a mitad de un bloque JSX.
 
@@ -389,11 +405,8 @@ git remote set-url origin "https://${TOKEN}@github.com/lacruzs-cyber/pago-servic
 "https://x-token:${TOKEN}@github.com/..."
 ```
 
-### Supabase service_role key
-- La key en `backend/.env` debe ser la `service_role` (JWT largo que empieza con `eyJ...`)
-- NO usar la key `anon`/`publishable` (empieza con `sb_publishable_...`)
-- Se obtiene en: Supabase → Project Settings → API → Project API keys → service_role
-
-### Proxy Vite
-- `vite.config.js` tiene `proxy: { '/api': 'http://localhost:3001' }`
-- El frontend usa: `const API = (import.meta.env.VITE_API_URL || '') + '/api'`
+### Supabase — key publishable
+- La key `sb_publishable_...` es la anon/publishable key (nueva nomenclatura de Supabase)
+- Es la misma que la antigua `anon key` — segura para exponer en frontend
+- La `service_role` key empieza con `eyJ...` y NO debe estar en el frontend
+- Si se necesita la service_role (para operaciones administrativas), usar solo en backend o scripts locales
