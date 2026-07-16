@@ -6,41 +6,21 @@ import ServiceForm from './components/ServiceForm';
 import VencimientoForm from './components/VencimientoForm';
 import ConfigModal from './components/ConfigModal';
 import { cargarConfig, guardarConfig, cargarOcultos, guardarOcultos, cargarGcalSync, guardarGcalSync } from './utils/storage';
-import { initGoogleAPI, signIn, signOut, isSignedIn, createCalendarEvent, marcarEventoPagado, eliminarCalendarEvent, listarEventosVencimientos } from './utils/googleCalendar';
+import { initGoogleAPI, signIn, signOut, isSignedIn, createCalendarEvent, eliminarCalendarEvent, listarEventosVencimientos } from './utils/googleCalendar';
 import { fechaHoy } from './utils/dateUtils';
+import {
+  getServicios, crearVencimiento, pagarVencimiento, actualizarVencimiento,
+  actualizarCalendarEvent, eliminarVencimiento as dbEliminarVencimiento,
+  crearServicio, actualizarServicio, eliminarServicio,
+  getConfig, setConfig as saveConfig,
+} from './lib/db';
 import './App.css';
-
-// Dev: proxy a localhost:3001  |  Android APK: URL completa del backend en Railway
-const API = (import.meta.env.VITE_API_URL || '') + '/api';
 
 // Client ID de Google Calendar — hardcodeado para no requerir configuración manual
 const DEFAULT_GCAL_CLIENT_ID = '987611899031-7d8qbnul2e7u5mah6isvlt9mrii1c4al.apps.googleusercontent.com';
 
-async function apiPost(url, body) {
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-
-async function apiPatch(url, body) {
-  const r = await fetch(url, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-
-async function apiDelete(url) {
-  const r = await fetch(url, { method: 'DELETE' });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
+// Servicios que NO deben crear eventos en Google Calendar
+const SERVICIOS_SIN_CALENDAR = ['NORA', 'ROSANA', 'AGUINALDO NORA', 'AGUINALDO ROSANA', 'MARIEL'];
 
 // Auto-genera vencimientos del dia 10 para servicios Mama en Supabase
 async function autoGenerarMama(serviciosAPI) {
@@ -60,7 +40,7 @@ async function autoGenerarMama(serviciosAPI) {
     );
     if (yaExiste) continue;
     try {
-      await apiPost(API + '/vencimientos', {
+      await crearVencimiento({
         servicioNombre: serv.nombre,
         fecha:          anio + '-' + mes + '-10',
         monto:          null,
@@ -74,9 +54,6 @@ async function autoGenerarMama(serviciosAPI) {
   localStorage.setItem(clave, '1');
 }
 
-// Servicios que NO deben crear eventos en Google Calendar
-const SERVICIOS_SIN_CALENDAR = ['NORA', 'ROSANA', 'AGUINALDO NORA', 'AGUINALDO ROSANA', 'MARIEL'];
-
 // Auto-genera vencimientos de Aguinaldo en junio (dia 30) y diciembre (dia 31)
 async function autoGenerarAguinaldo(serviciosAPI) {
   const hoy  = new Date();
@@ -86,16 +63,12 @@ async function autoGenerarAguinaldo(serviciosAPI) {
   // Solo generar en junio (6) y diciembre (12)
   if (mes !== 6 && mes !== 12) return;
 
-  const mesStr  = String(mes).padStart(2, '0');
-  const fechaVenc = mes === 6
-    ? anio + '-06-30'
-    : anio + '-12-31';
+  const mesStr    = String(mes).padStart(2, '0');
+  const fechaVenc = mes === 6 ? anio + '-06-30' : anio + '-12-31';
   const clave = 'aguinaldo_gen_' + anio + '_' + mesStr;
   if (localStorage.getItem(clave)) return;
 
-  const aguinaldo = serviciosAPI.filter(s =>
-    s.nombre.toUpperCase().includes('AGUINALDO')
-  );
+  const aguinaldo = serviciosAPI.filter(s => s.nombre.toUpperCase().includes('AGUINALDO'));
   if (!aguinaldo.length) { localStorage.setItem(clave, '1'); return; }
 
   const prefix = anio + '-' + mesStr;
@@ -105,7 +78,7 @@ async function autoGenerarAguinaldo(serviciosAPI) {
     );
     if (yaExiste) continue;
     try {
-      await apiPost(API + '/vencimientos', {
+      await crearVencimiento({
         servicioNombre: serv.nombre,
         fecha:          fechaVenc,
         monto:          null,
@@ -120,21 +93,21 @@ async function autoGenerarAguinaldo(serviciosAPI) {
 }
 
 export default function App() {
-  const [autenticado, setAutenticado]             = useState(() => sessionStorage.getItem('pagos_auth') === '1');
-  const [servicios, setServicios]                 = useState([]);
-  const [ocultos,   setOcultos]                   = useState([]);
-  const [cargando,  setCargando]                  = useState(true);
-  const [errorAPI,  setErrorAPI]                  = useState(null);
-  const [tab,       setTab]                       = useState('resumen');
-  const [googleReady,      setGoogleReady]        = useState(false);
-  const [googleConectado,  setGoogleConectado]    = useState(false);
-  const [modalServicio,    setModalServicio]      = useState(null);
-  const [modalVencimiento, setModalVencimiento]   = useState(null);
-  const [modalRegistroPago, setModalRegistroPago] = useState(null);
-  const [modalConfig, setModalConfig]             = useState(false);
-  const [modalEditar, setModalEditar]             = useState(null); // { servicio, vencimiento, initialValues }
-  const [config, setConfig]                       = useState({});
-  const [toast,  setToast]                        = useState(null);
+  const [autenticado, setAutenticado]              = useState(() => sessionStorage.getItem('pagos_auth') === '1');
+  const [servicios, setServicios]                  = useState([]);
+  const [ocultos,   setOcultos]                    = useState([]);
+  const [cargando,  setCargando]                   = useState(true);
+  const [errorAPI,  setErrorAPI]                   = useState(null);
+  const [tab,       setTab]                        = useState('resumen');
+  const [googleReady,       setGoogleReady]        = useState(false);
+  const [googleConectado,   setGoogleConectado]    = useState(false);
+  const [modalServicio,     setModalServicio]      = useState(null);
+  const [modalVencimiento,  setModalVencimiento]   = useState(null);
+  const [modalRegistroPago, setModalRegistroPago]  = useState(null);
+  const [modalConfig,       setModalConfig]        = useState(false);
+  const [modalEditar,       setModalEditar]        = useState(null);
+  const [config,            setConfigState]        = useState({});
+  const [toast,             setToast]              = useState(null);
 
   function mostrarToast(msg, tipo = 'success') {
     setToast({ mensaje: msg, tipo });
@@ -145,16 +118,13 @@ export default function App() {
     setCargando(true);
     setErrorAPI(null);
     try {
-      const resp = await fetch(API + '/servicios');
-      if (!resp.ok) throw new Error('Error ' + resp.status);
-      const serviciosAPI = await resp.json();
+      const serviciosAPI = await getServicios();
       await autoGenerarMama(serviciosAPI);
       await autoGenerarAguinaldo(serviciosAPI);
-      const resp2 = await fetch(API + '/servicios');
-      const data = resp2.ok ? await resp2.json() : serviciosAPI;
+      const data = await getServicios();
       setServicios(data.map(s => ({ ...s, id: s.nombre })));
     } catch (err) {
-      setErrorAPI('No se pudo conectar al backend. Verificar que el servidor este corriendo.');
+      setErrorAPI('No se pudo conectar a Supabase. Verificar la conexión a internet.');
     } finally {
       setCargando(false);
     }
@@ -163,20 +133,21 @@ export default function App() {
   useEffect(() => {
     async function inicializar() {
       let cfg = cargarConfig();
+      // Intentar cargar config desde Supabase (sincroniza entre dispositivos)
+      try {
+        const remoteConfig = await getConfig();
+        if (remoteConfig.googleClientId) {
+          cfg = { ...cfg, googleClientId: remoteConfig.googleClientId };
+          guardarConfig(cfg);
+        }
+      } catch {}
       // Usar Client ID hardcodeado como fallback — siempre disponible sin configuración
       if (!cfg.googleClientId) {
         cfg = { ...cfg, googleClientId: DEFAULT_GCAL_CLIENT_ID };
         guardarConfig(cfg);
-        // También persistir en Supabase si no estaba guardado
-        try {
-          await fetch(API + '/config', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ googleClientId: DEFAULT_GCAL_CLIENT_ID }),
-          });
-        } catch {}
+        try { await saveConfig({ googleClientId: DEFAULT_GCAL_CLIENT_ID }); } catch {}
       }
-      setConfig(cfg);
+      setConfigState(cfg);
       setOcultos(cargarOcultos());
       cargarDatos();
     }
@@ -199,15 +170,14 @@ export default function App() {
     const nombreServ = typeof servicio === 'string' ? servicio : servicio.nombre;
     try {
       if (vencimientoId) {
-        await apiPatch(API + '/vencimientos/pagar', { id: vencimientoId, fechaPago: hoy });
+        await pagarVencimiento({ id: vencimientoId, fechaPago: hoy });
         const serv = servicios.find(s => s.nombre === nombreServ);
         const venc = serv?.vencimientos?.find(v => v.id === vencimientoId);
         if (googleConectado && venc?.calendarEventId) {
           try { await eliminarCalendarEvent(venc.calendarEventId); } catch (e) {}
         }
       } else {
-        // Sin vencimiento pendiente: crear uno nuevo ya pagado con fecha de hoy
-        await apiPost(API + '/vencimientos', {
+        await crearVencimiento({
           servicioNombre: nombreServ,
           fecha: hoy, monto: null, notas: null,
           pagado: true, fechaPago: hoy,
@@ -235,7 +205,7 @@ export default function App() {
       mostrarToast('Vencimiento guardado');
     }
     try {
-      const vencCreado = await apiPost(API + '/vencimientos', {
+      await crearVencimiento({
         servicioNombre: servicio.nombre,
         fecha:  datos.fecha,
         monto:  datos.monto ?? null,
@@ -253,15 +223,14 @@ export default function App() {
     const servicio = modalRegistroPago;
     const vencId   = modalRegistroPago._vencimientoId;
     try {
-      // Servicios con múltiples pagos por mes (NORA, ROSANA, MARIEL): siempre crear nuevo
       if (servicio.permiteMultiplesPagos || modalRegistroPago._multipago) {
-        await apiPost(API + '/vencimientos', {
+        await crearVencimiento({
           servicioNombre: servicio.nombre,
           fecha: datos.fecha, monto: datos.monto ?? null,
           notas: datos.notas || null, pagado: true, fechaPago: datos.fecha,
         });
       } else if (vencId) {
-        await apiPatch(API + '/vencimientos/pagar', {
+        await pagarVencimiento({
           id: vencId, fechaPago: datos.fecha, monto: datos.monto ?? null,
         });
       } else {
@@ -270,11 +239,11 @@ export default function App() {
           v.estado !== 'S' && (v.fechaVencimiento || '').startsWith(mesPrefix)
         );
         if (pendienteMes) {
-          await apiPatch(API + '/vencimientos/pagar', {
+          await pagarVencimiento({
             id: pendienteMes.id, fechaPago: datos.fecha, monto: datos.monto ?? null,
           });
         } else {
-          await apiPost(API + '/vencimientos', {
+          await crearVencimiento({
             servicioNombre: servicio.nombre,
             fecha: datos.fecha, monto: datos.monto ?? null,
             notas: datos.notas || null, pagado: true, fechaPago: datos.fecha,
@@ -297,7 +266,7 @@ export default function App() {
       try { await eliminarCalendarEvent(venc.calendarEventId); } catch (e) {}
     }
     try {
-      await apiDelete(API + '/vencimientos/' + vencimientoId);
+      await dbEliminarVencimiento(vencimientoId);
       mostrarToast('Vencimiento eliminado');
       await cargarDatos();
     } catch (err) {
@@ -319,7 +288,7 @@ export default function App() {
 
   async function handleGuardarEdicion(datos) {
     try {
-      await apiPatch(API + '/vencimientos/actualizar', {
+      await actualizarVencimiento({
         id:               modalEditar.vencimiento.id,
         monto:            datos.monto ?? null,
         fechaVencimiento: datos.fecha,
@@ -338,10 +307,10 @@ export default function App() {
   async function handleGuardarServicio(datos) {
     try {
       if (modalServicio && modalServicio !== 'nuevo') {
-        await apiPatch(API + '/servicios/' + encodeURIComponent(modalServicio.nombre), datos);
+        await actualizarServicio(modalServicio.nombre, datos);
         mostrarToast('Servicio actualizado');
       } else {
-        await apiPost(API + '/servicios', datos);
+        await crearServicio(datos);
         mostrarToast('Servicio creado');
       }
       await cargarDatos();
@@ -354,7 +323,7 @@ export default function App() {
   async function handleEliminarServicio(nombre) {
     if (window.confirm('Eliminar este servicio?')) {
       try {
-        await apiDelete(API + '/servicios/' + encodeURIComponent(nombre));
+        await eliminarServicio(nombre);
         mostrarToast('Servicio eliminado');
         await cargarDatos();
       } catch (err) {
@@ -383,7 +352,6 @@ export default function App() {
     if (!googleConectado) { mostrarToast('Conectate a Google primero', 'error'); return; }
     mostrarToast('Revisando Google Calendar...');
 
-    // Rango: hoy hasta fin del próximo mes
     const hoy = new Date(); hoy.setHours(0,0,0,0);
     const hoyStr = fechaHoy();
     const finProxMes = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0);
@@ -392,12 +360,8 @@ export default function App() {
     let eliminados = 0, creados = 0, errores = 0;
 
     try {
-      // 1. Obtener todos los eventos de vencimientos en el rango
       const eventosCalendar = await listarEventosVencimientos(hoyStr, finProxMesStr);
 
-      // 2. Agrupar por (servicio + fecha) para detectar duplicados
-      // El summary es "💳 Vencimiento: {nombre}"
-      console.log('[Sync] Eventos encontrados en Calendar:', eventosCalendar.length, eventosCalendar.map(e => e.summary));
       const gruposPorKey = {};
       for (const ev of eventosCalendar) {
         const summary = ev.summary || '';
@@ -410,11 +374,9 @@ export default function App() {
         gruposPorKey[key].push(ev);
       }
 
-      // 3. Eliminar duplicados — conservar el primero, borrar el resto
       for (const key of Object.keys(gruposPorKey)) {
         const evs = gruposPorKey[key];
         if (evs.length <= 1) continue;
-        // Mantener el primero, eliminar los demás
         for (let i = 1; i < evs.length; i++) {
           try {
             await eliminarCalendarEvent(evs[i].id);
@@ -424,17 +386,14 @@ export default function App() {
             console.error('[Sync] Error eliminando duplicado:', e);
           }
         }
-        // Quedarse con el ID del primero en el mapa
         gruposPorKey[key] = [evs[0]];
       }
 
-      // 4. Construir mapa de eventos existentes: key → eventId
       const existentes = {};
       for (const [key, evs] of Object.entries(gruposPorKey)) {
         existentes[key] = evs[0].id;
       }
 
-      // 5. Crear eventos para vencimientos que no tienen uno
       const syncMap = cargarGcalSync();
       for (const s of servicios) {
         for (const v of (s.vencimientos || [])) {
@@ -442,29 +401,18 @@ export default function App() {
           const fecha = v.fechaVencimiento;
           if (!fecha || fecha < hoyStr || fecha > finProxMesStr) continue;
           const key = s.nombre + '|' + fecha;
-          // Verificar si ya existe en Calendar
           if (existentes[key]) {
-            // Asegurarse de que Supabase tiene el eventId correcto
             if (!v.calendarEventId && v.id) {
-              fetch(API + '/vencimientos/calendar-event', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: v.id, calendarEventId: existentes[key] }),
-              }).catch(() => {});
+              actualizarCalendarEvent({ id: v.id, calendarEventId: existentes[key] }).catch(() => {});
             }
             continue;
           }
-          if (v.calendarEventId) continue; // ya tiene en Supabase
-          // No existe → crear
+          if (v.calendarEventId) continue;
           try {
             const eventId = await createCalendarEvent(s.nombre, fecha, v.monto, v.comentarios);
             syncMap[key] = eventId;
             if (v.id) {
-              fetch(API + '/vencimientos/calendar-event', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: v.id, calendarEventId: eventId }),
-              }).catch(() => {});
+              actualizarCalendarEvent({ id: v.id, calendarEventId: eventId }).catch(() => {});
             }
             creados++;
           } catch (e) { errores++; }
@@ -474,9 +422,9 @@ export default function App() {
 
       const msg = [
         eventosCalendar.length + ' eventos en Calendar',
-        creados    ? creados + ' creados'               : '',
-        eliminados ? eliminados + ' duplicados eliminados' : '',
-        errores    ? errores + ' errores'               : '',
+        creados    ? creados + ' creados'                    : '',
+        eliminados ? eliminados + ' duplicados eliminados'   : '',
+        errores    ? errores + ' errores'                    : '',
       ].filter(Boolean).join(' — ');
       mostrarToast('✅ Sync: ' + msg);
     } catch (e) {
@@ -493,9 +441,8 @@ export default function App() {
   }
   async function handleGuardarConfig(clientId) {
     const cfg = { ...config, googleClientId: clientId };
-    setConfig(cfg); guardarConfig(cfg); setModalConfig(false);
-    // Guardar también en Supabase para persistir entre dispositivos y limpiezas de localStorage
-    try { await fetch(API + '/config', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ googleClientId: clientId }) }); } catch {}
+    setConfigState(cfg); guardarConfig(cfg); setModalConfig(false);
+    try { await saveConfig({ googleClientId: clientId }); } catch {}
     initGoogleAPI(clientId, () => { setGoogleReady(true); setGoogleConectado(isSignedIn()); });
     mostrarToast('Configuracion guardada');
   }

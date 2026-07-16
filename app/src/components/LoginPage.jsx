@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const API = (import.meta.env.VITE_API_URL || '') + '/api';
+const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD || 'radiohead';
 
 export default function LoginPage({ onLogin }) {
   const [password, setPassword] = useState('');
@@ -12,19 +12,14 @@ export default function LoginPage({ onLogin }) {
     setError('');
     setCargando(true);
     try {
-      const r = await fetch(API + '/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      if (r.ok) {
+      if (password === APP_PASSWORD) {
         sessionStorage.setItem('pagos_auth', '1');
         onLogin();
       } else {
         setError('Contraseña incorrecta');
       }
     } catch {
-      setError('No se pudo conectar al servidor');
+      setError('Error al verificar contraseña');
     } finally {
       setCargando(false);
     }
