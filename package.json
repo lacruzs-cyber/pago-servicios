@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "Administrador de vencimientos de servicios mensuales",
   "scripts": {
-    "backend": "node backend/server.js",
+    "backend": "node --no-warnings backend/server.js",
     "frontend": "npm run dev --prefix app",
     "dev": "concurrently -n BACKEND,FRONTEND -c cyan,green \"npm run backend\" \"npm run frontend\"",
     "build": "npm run build --prefix app",
-    "start": "node backend/server.js",
+    "start": "node --no-warnings backend/server.js",
     "setup": "npm run install:all && npm run build",
     "install:backend": "npm install --prefix backend",
     "install:frontend": "npm install --prefix app",

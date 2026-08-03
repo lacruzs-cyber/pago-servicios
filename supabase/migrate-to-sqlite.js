@@ -13,7 +13,7 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
-const Database = require('better-sqlite3');
+const Database = require('./sqlite-local');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://himchcizeowsfihxtimj.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8';

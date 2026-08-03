@@ -408,13 +408,26 @@ git remote set-url origin "https://${TOKEN}@github.com/lacruzs-cyber/pago-servic
 "https://x-token:${TOKEN}@github.com/..."
 ```
 
-### better-sqlite3 — instalación
+### SQLite: `node:sqlite`, no `better-sqlite3`
 
-`better-sqlite3` necesita un binario nativo. Al hacer `npm install` en
-`backend/` descarga un binario precompilado para Windows automáticamente (no
-requiere Visual Studio Build Tools en el caso normal). Si algún día falla la
-descarga del binario, la alternativa es compilar desde fuente (necesita
-Python + build tools de Windows) — pero no debería hacer falta.
+Se probó primero con `better-sqlite3`, pero en la PC de Sebastian falló la
+descarga del binario nativo precompilado para Windows (`Could not locate the
+bindings file`). En vez de pelear con eso, se cambió a `node:sqlite`, el
+módulo de SQLite que ya viene incluido en Node (estable desde Node 22.5+;
+Sebastian tiene Node 22.15). Cero binarios nativos, cero instalación — no se
+puede romper por antivirus/firewall/proxy corporativo como pasó con
+better-sqlite3.
+
+`backend/sqlite-local.js` y `supabase/sqlite-local.js` son un wrapper chiquito
+que expone `node:sqlite` con la misma API que usábamos de better-sqlite3
+(`.prepare().get/all/run()`, `.transaction()`, `.pragma()`) para no tener que
+tocar el resto del código. Si en algún momento hay que tocar la capa de datos,
+extender ese wrapper en vez de volver a `better-sqlite3`.
+
+`node:sqlite` todavía es "experimental" en Node — tira un `ExperimentalWarning`
+en consola al arrancar. Se silencia con el flag `--no-warnings`, ya aplicado
+en los scripts de `package.json` (`npm start`, `npm run dev`,
+`migrate-to-sqlite`).
 
 ### Supabase — ya no se usa, solo referencia histórica
 
