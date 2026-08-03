@@ -15,6 +15,7 @@ export default function ServiceList({
   onOcultarServicio,
   onMostrarServicio,
   onRegistrarPago,
+  onEditarVencimiento,
 }) {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
@@ -61,6 +62,7 @@ export default function ServiceList({
     onEditarServicio,
     onRegistrarPago,
     onOcultarServicio,
+    onEditarVencimiento,
     esOculto: false,
   };
 

@@ -6,14 +6,21 @@ App React para administrar vencimientos de servicios mensuales con recordatorios
 
 ## Arrancar la app
 
-Abrir una terminal en la carpeta `app` y ejecutar:
+La app corre 100% local (Express + SQLite, sin nube). Doble clic en
+`iniciar-app.bat` en la raíz del proyecto — instala todo la primera vez y
+abre el navegador en http://localhost:4000.
+
+Para desarrollo (con recarga en caliente):
 
 ```
-npm install
 npm run dev
 ```
 
-Luego abrir el navegador en: http://localhost:5173
+Luego abrir el navegador en: http://localhost:5173 (el backend debe estar
+corriendo en el puerto 4000 en paralelo — `npm run backend`).
+
+Ver `INSTRUCCIONES_DEPLOY.md` para la guía completa, incluyendo cómo migrar
+los datos que ya tenías en Supabase.
 
 ---
 
@@ -26,7 +33,7 @@ Luego abrir el navegador en: http://localhost:5173
 3. **APIs y Servicios > Biblioteca** -> buscar "Google Calendar API" -> Habilitar
 4. **APIs y Servicios > Credenciales** -> + Crear credenciales -> ID de cliente OAuth 2.0
 5. Tipo: **Aplicacion web**
-6. Origenes JavaScript autorizados: agregar `http://localhost:5173`
+6. Origenes JavaScript autorizados: agregar `http://localhost:4000` (y `http://localhost:5173` si además usás modo desarrollo)
 7. Copiar el **Client ID** generado
 
 ### Paso 2 - Conectar en la app

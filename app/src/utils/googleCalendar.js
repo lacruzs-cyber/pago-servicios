@@ -4,6 +4,8 @@
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 
+const KEY_GCAL_AUTH = 'gcal_autorizado';
+
 let tokenClient = null;
 let gapiInited = false;
 let gisInited = false;
@@ -43,7 +45,22 @@ export function initGoogleAPI(clientId, onReady) {
 }
 
 function maybeReady() {
-  if (gapiInited && gisInited && onReadyCallback) {
+  if (!gapiInited || !gisInited || !onReadyCallback) return;
+
+  // Si el usuario ya autorizó antes, intentar reconectar silenciosamente
+  if (localStorage.getItem(KEY_GCAL_AUTH) === '1') {
+    tokenClient.callback = (resp) => {
+      if (!resp.error) {
+        onReadyCallback();
+      } else {
+        // No se pudo reconectar en silencio (sesión de Google expirada)
+        localStorage.removeItem(KEY_GCAL_AUTH);
+        onReadyCallback();
+      }
+    };
+    // prompt: '' = sin popup si el usuario ya tiene sesión activa en Google
+    tokenClient.requestAccessToken({ prompt: '' });
+  } else {
     onReadyCallback();
   }
 }
@@ -63,6 +80,7 @@ export function signIn() {
         reject(resp);
         return;
       }
+      localStorage.setItem(KEY_GCAL_AUTH, '1');
       resolve(true);
     };
     if (window.gapi.client.getToken() === null) {
@@ -79,6 +97,7 @@ export function signOut() {
     window.google.accounts.oauth2.revoke(token.access_token, () => {});
     window.gapi.client.setToken('');
   }
+  localStorage.removeItem(KEY_GCAL_AUTH);
 }
 
 export async function createCalendarEvent(servicio, fechaVencimiento, monto, notas) {
@@ -86,11 +105,6 @@ export async function createCalendarEvent(servicio, fechaVencimiento, monto, not
   if (!token) throw new Error('No autenticado con Google');
 
   const dateStr = fechaVencimiento; // formato YYYY-MM-DD
-
-  // Calcular fecha de fin (mismo día = evento de día completo)
-  const fechaFin = new Date(dateStr + 'T12:00:00');
-  fechaFin.setDate(fechaFin.getDate() + 1);
-  const dateFin = fechaFin.toISOString().split('T')[0];
 
   const descripcion = [
     `📋 Servicio: ${servicio}`,
@@ -100,24 +114,25 @@ export async function createCalendarEvent(servicio, fechaVencimiento, monto, not
     '→ Abrí la app "Pago de Servicios" para marcarlo como pagado.',
   ].filter(Boolean).join('\n');
 
+  // Evento con hora para poder definir alertas precisas:
+  // inicio 10:00 del día de vencimiento, fin 10:30
   const event = {
     summary: `💳 Vencimiento: ${servicio}`,
     description: descripcion,
     start: {
-      date: dateStr,
+      dateTime: `${dateStr}T10:00:00`,
       timeZone: 'America/Argentina/Buenos_Aires',
     },
     end: {
-      date: dateFin,
+      dateTime: `${dateStr}T10:30:00`,
       timeZone: 'America/Argentina/Buenos_Aires',
     },
     colorId: '11', // rojo tomate
     reminders: {
       useDefault: false,
       overrides: [
-        { method: 'popup', minutes: 2 * 24 * 60 },  // 2 días antes
-        { method: 'email', minutes: 2 * 24 * 60 },  // 2 días antes por email
-        { method: 'popup', minutes: 60 },            // 1 hora antes del día
+        { method: 'popup', minutes: 0 },    // día del vencimiento a las 10:00
+        { method: 'popup', minutes: 840 },  // día anterior a las 20:00 (14hs antes)
       ],
     },
   };
@@ -143,6 +158,37 @@ export async function marcarEventoPagado(calendarEventId, servicio) {
     },
   });
 }
+
+// Lista eventos de vencimientos en un rango de fechas
+// No usa 'q' (poco confiable con emojis) — trae todos y filtra en JS
+export async function listarEventosVencimientos(fechaInicio, fechaFin) {
+  const token = window.gapi?.client?.getToken();
+  if (!token) throw new Error('No autenticado con Google');
+
+  let allItems = [];
+  let pageToken = undefined;
+
+  do {
+    const params = {
+      calendarId: 'primary',
+      timeMin: fechaInicio + 'T00:00:00-03:00',
+      timeMax: fechaFin + 'T23:59:59-03:00',
+      singleEvents: true,
+      maxResults: 250,
+      orderBy: 'startTime',
+    };
+    if (pageToken) params.pageToken = pageToken;
+
+    const response = await window.gapi.client.calendar.events.list(params);
+    const items = response.result.items || [];
+    allItems = allItems.concat(items);
+    pageToken = response.result.nextPageToken;
+  } while (pageToken);
+
+  // Filtrar solo eventos de vencimientos (por título)
+  return allItems.filter(ev => (ev.summary || '').includes('Vencimiento:'));
+}
+
 
 export async function eliminarCalendarEvent(calendarEventId) {
   const token = window.gapi?.client?.getToken();

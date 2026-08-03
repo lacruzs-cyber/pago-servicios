@@ -5,9 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Redirige /api/* al backend Express en puerto 3001
+      // Redirige /api/* al backend Express local (SQLite)
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:4000',
         changeOrigin: true,
       },
     },
