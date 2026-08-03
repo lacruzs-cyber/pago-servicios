@@ -43,7 +43,16 @@ async function main() {
 
   const servicios = await traerTodo('servicios', 'nombre');
   const vencimientos = await traerTodo('vencimientos', 'id');
-  const appSettings = await traerTodo('app_settings');
+
+  // app_settings puede no existir en tu Supabase (el Client ID de Google
+  // suele venir hardcodeado en el frontend) — si falla, seguimos sin cortar
+  // el resto de la migracion.
+  let appSettings = [];
+  try {
+    appSettings = await traerTodo('app_settings');
+  } catch (err) {
+    console.warn(`Aviso: no se pudo leer app_settings (${err.message}). Se sigue sin esa configuracion.`);
+  }
 
   console.log(`Encontrados: ${servicios.length} servicios, ${vencimientos.length} vencimientos, ${appSettings.length} configuraciones.`);
 
