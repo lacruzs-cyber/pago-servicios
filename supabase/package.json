@@ -4,7 +4,8 @@
   "description": "Scripts de migracion y mantenimiento de Supabase",
   "scripts": {
     "migrate": "node migrate-excel.js",
-    "migrate-to-sqlite": "node --no-warnings migrate-to-sqlite.js"
+    "migrate-to-sqlite": "node --no-warnings migrate-to-sqlite.js",
+    "migrate-excel-to-sqlite": "node --no-warnings migrate-excel-to-sqlite.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",

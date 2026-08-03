@@ -8,20 +8,24 @@ GitHub como respaldo, pero de ahí no se publica ni se despliega a ningún lado.
 
 ## Primera vez
 
-### 1. Migrar los datos que ya tenías en Supabase (una sola vez)
+### 1. Cargar los datos existentes (una sola vez)
 
-Este paso trae todo lo que ya cargaste (servicios, vencimientos, pagos) a la
-base de datos local. Necesita internet solo para esta migración.
+El proyecto de Supabase de Sebastian quedó inaccesible (se pausó o se borró)
+antes de poder migrar desde ahí, así que la carga inicial se hace desde
+`contexto/gastos 2026.xlsx` (la planilla original). Le va a faltar lo que se
+cargó a mano en la app entre abril y agosto de 2026 — eso no se pudo
+recuperar.
 
 ```bash
 cd supabase
 npm install
-node migrate-to-sqlite.js
+node migrate-excel-to-sqlite.js
 ```
 
-Va a mostrar cuántos servicios y vencimientos migró. Después de esto, la app
-ya no necesita Supabase para nada — podés borrar el proyecto de Supabase
-cuando quieras (ver más abajo).
+Si en algún momento se recupera el acceso a Supabase (por ejemplo si el
+proyecto solo estaba pausado, no borrado), usar en cambio
+`node migrate-to-sqlite.js` — trae todo lo que había ahí, que es más completo
+que el Excel.
 
 ### 2. Instalar y compilar
 
