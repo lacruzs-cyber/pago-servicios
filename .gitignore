@@ -1,6 +1,9 @@
 # Dependencias
 node_modules/
 
+# Archivos internos de Claude Code (sesiones, worktrees) — no son parte del proyecto
+.claude/
+
 # Variables de entorno (nunca subir al repo)
 .env
 .env.local
