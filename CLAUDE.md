@@ -2,11 +2,13 @@
 
 ## Descripción general
 
-Aplicación web + Android para administrar el vencimiento y pago de servicios del hogar.  
-Stack: **React 19 + Vite** (frontend) + **Supabase PostgreSQL** (base de datos).  
-El frontend llama a Supabase directamente (sin backend Express).  
-La app puede instalarse como **APK Android** usando Capacitor.  
-El deploy se hace en **Vercel** (gratuito, sin sleep).
+Aplicación web + Android para administrar el vencimiento y pago de servicios del hogar.
+Stack: **React 19 + Vite** (frontend) + **Express + SQLite** (backend local).
+Corre 100% en la PC de Sebastian — sin Supabase, sin Vercel, sin ningún servicio
+en la nube. El código se sigue subiendo a GitHub como respaldo, pero de ahí
+no se publica ni se despliega a ningún lado.
+La app puede instalarse como **APK Android** usando Capacitor (pendiente de
+resolver cómo llega el celular al backend local — ver `INSTRUCCIONES_DEPLOY.md`).
 
 ---
 
@@ -15,16 +17,16 @@ El deploy se hace en **Vercel** (gratuito, sin sleep).
 ```
 Pago de Servicios/
 ├── supabase/
-│   ├── schema.sql              ← Schema PostgreSQL + seed de servicios
-│   ├── migrate-excel.js        ← Script de migración Excel → Supabase (ejecutar una sola vez)
+│   ├── schema.sql              ← Schema historico (referencia, ya no se usa)
+│   ├── migrate-excel.js        ← Script viejo: Excel → Supabase (ya no se usa)
+│   ├── migrate-to-sqlite.js    ← Migra los datos de Supabase → SQLite local (correr UNA VEZ)
 │   └── package.json
 ├── app/                        ← Frontend React + Vite
 │   ├── src/
 │   │   ├── App.jsx             ← Componente raíz, toda la lógica de estado
 │   │   ├── App.css             ← Estilos globales
 │   │   ├── lib/
-│   │   │   ├── supabase.js         ← Cliente Supabase (VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY)
-│   │   │   └── db.js               ← Todas las funciones de BD (reemplaza Express)
+│   │   │   └── db.js               ← Cliente REST al backend local (fetch a /api/*)
 │   │   ├── components/
 │   │   │   ├── ResumenPage.jsx     ← Tab "Inicio" (tabla de vencimientos/dashboard)
 │   │   │   ├── ServiceList.jsx     ← Tab "Mis servicios" (lista + sección Mamá)
@@ -39,79 +41,83 @@ Pago de Servicios/
 │   │   └── utils/
 │   │       ├── storage.js          ← Persistencia localStorage
 │   │       ├── dateUtils.js        ← Formateo fechas y etiquetas urgencia
-│   │       └── googleCalendar.js   ← Integración Google Calendar API
+│   │       └── googleCalendar.js   ← Integración Google Calendar API (100% client-side)
 │   ├── capacitor.config.ts     ← Config Capacitor para APK Android
 │   ├── .env.local              ← Variables locales (NO commitear)
-│   ├── .env.production.example ← Template para build Android
-│   ├── vercel.json             ← Config Vercel (SPA routing)
-│   └── vite.config.js          ← Configuración Vite
-├── backend/                    ← (OBSOLETO - ya no se usa, conservado por referencia)
+│   ├── .env.production.example ← Template para build Android (opcional, ver notas)
+│   └── vite.config.js          ← Configuración Vite (proxy /api → localhost:4000)
+├── backend/                    ← Backend local: Express + SQLite
+│   ├── server.js                   ← API REST + sirve el build del frontend, todo en un puerto
+│   ├── data/pago_servicios.db      ← Base de datos SQLite (se crea sola, NO se commitea)
+│   └── package.json
+├── iniciar-app.bat             ← Doble clic: instala/compila si hace falta y levanta todo
+├── deploy.bat                  ← Doble clic: commit + push a GitHub (solo respaldo, no deploya)
 ├── .env                        ← GITHUB_TOKEN + GITHUB_REPO (NO commitear, en raíz)
 ├── contexto/
-│   └── gastos 2026.xlsx        ← Planilla original (referencia, ya migrada a Supabase)
+│   └── gastos 2026.xlsx        ← Planilla original (referencia historica)
 ├── .gitignore
+├── INSTRUCCIONES_DEPLOY.md     ← Guía para correr la app local + migrar datos de Supabase
 └── CLAUDE.md                   ← Este archivo
 ```
 
 ---
 
-## Variables de entorno
+## Cómo corre la app
 
-### Desarrollo local (`app/.env.local` — NO commitear)
-```
-VITE_SUPABASE_URL=https://himchcizeowsfihxtimj.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8
-VITE_APP_PASSWORD=radiohead
-```
-
-### Producción Vercel (configurar en el dashboard de Vercel)
-```
-VITE_SUPABASE_URL=https://himchcizeowsfihxtimj.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8
-VITE_APP_PASSWORD=radiohead
-```
-
-### Android APK (`app/.env.production`)
-```
-VITE_SUPABASE_URL=https://himchcizeowsfihxtimj.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8
-VITE_APP_PASSWORD=radiohead
-```
-
----
-
-## Arranque del proyecto
+Un solo proceso Node (`backend/server.js`) sirve la API REST **y** el build
+compilado del frontend, todo en `http://localhost:4000`. No hay CORS, no hay
+dos servidores, no hay nube.
 
 ```bash
-# Solo frontend (ya no hay backend)
-cd app
-npm install      # primera vez
-npm run dev      # corre en http://localhost:5173
+# Uso diario: doble clic en iniciar-app.bat (instala/compila la primera vez)
+
+# A mano:
+npm run setup   # primera vez: instala backend + frontend, compila
+npm start       # levanta backend/server.js en localhost:4000
+
+# Modo desarrollo (hot reload del frontend):
+npm run dev     # corre vite (5173) + backend (4000) con proxy /api
 ```
+
+### Variables de entorno
+
+`app/.env.local` (NO commitear):
+```
+VITE_APP_PASSWORD=radiohead
+```
+
+`backend/.env` (NO commitear):
+```
+PORT=4000
+```
+
+Ya no hacen falta `VITE_SUPABASE_URL` ni `VITE_SUPABASE_ANON_KEY` — se eliminaron.
 
 ---
 
-## Supabase — Acceso directo desde el frontend
+## Backend local — Express + SQLite (`backend/server.js`)
 
-### Base de datos
-- Tablas: `servicios`, `vencimientos`, `app_settings`
-- Key usada: `VITE_SUPABASE_ANON_KEY` (publishable key — sáfe para exponer en frontend)
-- Si alguna operación falla por permisos, verificar que RLS esté deshabilitado en Supabase o configurar policies para anon role
+Reemplaza por completo a Supabase. Un solo archivo `backend/server.js`:
 
-### `app/src/lib/supabase.js`
-```js
-import { createClient } from '@supabase/supabase-js';
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-```
+- Crea (si no existe) `backend/data/pago_servicios.db` con las tablas
+  `servicios`, `vencimientos`, `app_settings` (mismo modelo que tenía Supabase,
+  adaptado a SQLite: booleans como `0/1`, ids `INTEGER AUTOINCREMENT` en vez
+  de UUID).
+- En el primer arranque, si la tabla `servicios` está vacía, la llena con el
+  catálogo base (ver seed en el propio `server.js`).
+- Expone los mismos endpoints REST que antes exponía el backend viejo
+  contra Supabase (`GET/POST/PATCH/DELETE /api/servicios`, `/api/vencimientos`,
+  `/api/config`), así que `app/src/lib/db.js` los consume vía `fetch`.
+- Sirve el frontend compilado (`app/dist`) como archivos estáticos, con
+  fallback a `index.html` para el ruteo SPA.
+- Usa `better-sqlite3` (síncrono, sin dependencias externas más que el
+  binario nativo que se descarga solo con `npm install`).
 
-### `app/src/lib/db.js` — Funciones exportadas
+### `app/src/lib/db.js` — funciones exportadas (sin cambios de firma)
 
 | Función | Descripción |
 |--------|-------------|
-| `getServicios()` | Lista servicios activos + vencimientos anidados (fmtVenc) |
+| `getServicios()` | Lista servicios activos + vencimientos anidados |
 | `crearVencimiento({servicioNombre, fecha, monto, notas, pagado, fechaPago, esAutoGenerado, calendarEventId})` | Crear vencimiento |
 | `pagarVencimiento({id, fechaPago, monto})` | Marcar como pagado (estado='S') |
 | `actualizarVencimiento({id, monto, fechaVencimiento, comentarios})` | Editar vencimiento |
@@ -123,34 +129,39 @@ export const supabase = createClient(
 | `getConfig()` | Leer app_settings (googleClientId) |
 | `setConfig({googleClientId})` | Upsert en app_settings |
 
-### Mapeo DB → frontend (`fmtVenc`)
-```js
-id, anio, mes,
-descripcion      ← servicio_nombre
-fechaVencimiento ← fecha_vencimiento
-fechaPago        ← fecha_pago
-monto            ← parseFloat(monto)
-estado           ← estado || 'N'
-comentarios      ← comentarios
-calendarEventId  ← calendar_event_id || null
-esManual         ← es_manual
-esAutoGenerado   ← es_auto_generado
+Estas funciones ahora hacen `fetch('/api/...')` en vez de llamar a
+`supabase-js`. Los componentes que las consumen (`App.jsx`, etc.) no
+necesitaron cambios — la firma es idéntica a la versión con Supabase.
+
+### Migración de datos desde Supabase (`supabase/migrate-to-sqlite.js`)
+
+Script de una sola vez. Se corre desde la PC de Sebastian (necesita internet
+para leer de Supabase), y escribe directo en `backend/data/pago_servicios.db`:
+
+```bash
+cd supabase
+npm install
+node migrate-to-sqlite.js
 ```
+
+Usa las credenciales de `supabase/.env` (o el fallback hardcodeado en el
+script). Después de correrlo, la app ya no necesita Supabase para nada.
 
 ---
 
 ## Frontend — arquitectura de datos
 
-### Fuente única: Supabase directo
-Todos los datos vienen de Supabase vía `db.js`. El frontend llama a estas funciones para toda operación de escritura y recarga los datos con `cargarDatos()` después de cada cambio.
+### Fuente única: el backend local
 
-### Naming en App.jsx
-- `config` = estado React (`useState({})`) — setter es `setConfigState` (para evitar conflicto con `setConfig` importada de db.js)
-- `saveConfig` = alias de `setConfig` de db.js (guarda en Supabase)
-- `dbEliminarVencimiento` = alias de `eliminarVencimiento` de db.js (para no conflicto con la función del handler)
+Todos los datos vienen de `http://localhost:4000/api/*` vía `db.js`. El
+frontend llama a estas funciones para toda operación de escritura y recarga
+los datos con `cargarDatos()` después de cada cambio. Sin cambios respecto a
+como funcionaba con Supabase, solo cambió el transporte.
 
 ### Login (client-side)
-`LoginPage.jsx` compara la contraseña con `VITE_APP_PASSWORD` (default: `'radiohead'`). No requiere backend.
+`LoginPage.jsx` compara la contraseña con `VITE_APP_PASSWORD` (default:
+`'radiohead'`). Sigue sin requerir backend — es una validación simple en el
+navegador, no cambió con esta migración.
 
 ### Normalización en `ServiceCard` (`norm(v)`)
 ```js
@@ -272,9 +283,13 @@ Implementación con Pointer Events API en `Modal.jsx`:
 ### 11. Google Calendar
 
 - Client ID hardcodeado como default: `987611899031-7d8qbnul2e7u5mah6isvlt9mrii1c4al.apps.googleusercontent.com`
-- Se persiste en Supabase tabla `app_settings` para sincronizar entre dispositivos
+- Se persiste en el backend local (tabla `app_settings`) para no perderlo al reinstalar
+- 100% client-side (gapi + Google Identity Services) — no depende del backend
+  más que para guardar/leer el Client ID configurado
 - Botón "Sincronizar" deduplica eventos antes de crear nuevos
 - Servicios en `SERVICIOS_SIN_CALENDAR` nunca crean eventos
+- El origen JavaScript autorizado en Google Cloud Console debe incluir
+  `http://localhost:4000` (ver `INSTRUCCIONES_DEPLOY.md`)
 
 ---
 
@@ -313,33 +328,14 @@ otros           → 📌 gris
 
 ---
 
-## Deploy — Vercel (producción actual)
-
-### Setup inicial en Vercel
-1. Ir a [vercel.com](https://vercel.com) → New Project
-2. Importar repositorio: `lacruzs-cyber/pago-servicios`
-3. **Root Directory**: `app` (importante!)
-4. Framework: Vite (auto-detectado)
-5. Variables de entorno:
-   - `VITE_SUPABASE_URL` = `https://himchcizeowsfihxtimj.supabase.co`
-   - `VITE_SUPABASE_ANON_KEY` = `sb_publishable_jZTQ9QUf5OYdloa_orP4oA_w90ughE8`
-   - `VITE_APP_PASSWORD` = `radiohead`
-6. Deploy → Vercel genera una URL tipo `pago-servicios.vercel.app`
-
-### Redeploy automático
-Cada `git push origin main` triggeriza un nuevo deploy en Vercel.
-
-### Android APK (Capacitor)
-- Proyecto Android en `app/android/`
-- App ID: `com.pagodeservicios.app`
-- Para buildear: crear `app/.env.production` con las variables de Supabase
-- Comandos: `npm run build` → `npx cap sync android` → Android Studio → Build APK
-
----
-
 ## Workflow GitHub — REGLA OBLIGATORIA
 
 **Los archivos locales son siempre la fuente de verdad.** Nunca usar los archivos del clone de GitHub para sobrescribir los locales.
+
+El repositorio en GitHub es **solo respaldo del código** — no hay ningún
+servicio (Vercel, Render, Supabase) escuchando los pushes. Nada se publica ni
+se redeploya. Commitear y pushear no requiere autorización previa del usuario
+salvo que se detecten archivos sensibles en el diff (ver más abajo).
 
 ```bash
 # Token en .env de la RAÍZ del proyecto (no en backend/.env)
@@ -367,7 +363,7 @@ git commit -m "descripción"
 git push origin main
 ```
 
-Vercel redeploya automáticamente con cada push.
+No hay redeploy automático de ningún tipo — es solo control de versiones.
 
 ---
 
@@ -375,11 +371,11 @@ Vercel redeploya automáticamente con cada push.
 
 ### Truncación de archivos JSX en Windows mount
 
-**PROBLEMA**: La herramienta `Write` trunca archivos >~3600 bytes en el mount de Windows (`D:\Desarrollo\...`). Los archivos quedan cortados sin error visible, causando fallos de build silenciosos en Vercel.
+**PROBLEMA**: La herramienta `Write` trunca archivos >~3600 bytes en el mount de Windows (`D:\Desarrollo\...`). Los archivos quedan cortados sin error visible, causando fallos de build silenciosos.
 
 **SÍNTOMA**: `wc -l archivo.jsx` muestra menos líneas de las esperadas; el archivo termina a mitad de un bloque JSX.
 
-**SOLUCIÓN OBLIGATORIA** para archivos JSX grandes:
+**SOLUCIÓN OBLIGATORIA** para archivos JSX/JS grandes:
 1. Nunca usar `Write` directo para archivos >3600 bytes en el mount Windows
 2. Usar scripts Python para generar/modificar archivos:
    ```python
@@ -389,6 +385,13 @@ Vercel redeploya automáticamente con cada push.
 3. Para ediciones pequeñas: usar la herramienta `Edit` (solo envía el diff, no trunca)
 4. Siempre verificar con `wc -l` y `tail -5` después de escribir
 5. Hacer `npm run build` en el clone antes de pushear
+
+### El mount de Windows es lento para muchos archivos chicos
+
+Operaciones que tocan `node_modules` completo (copiar, instalar) via el mount
+`D:\...` pueden ser mucho más lentas que en un disco nativo — tenerlo en
+cuenta si un `npm install` o similar parece colgado; probablemente solo está
+lento, no roto.
 
 ### Emojis en Python
 - Usar `\U0001FXXX` (8 dígitos, mayúscula): `'\U0001F4B3'` = 💳
@@ -405,8 +408,18 @@ git remote set-url origin "https://${TOKEN}@github.com/lacruzs-cyber/pago-servic
 "https://x-token:${TOKEN}@github.com/..."
 ```
 
-### Supabase — key publishable
-- La key `sb_publishable_...` es la anon/publishable key (nueva nomenclatura de Supabase)
-- Es la misma que la antigua `anon key` — segura para exponer en frontend
-- La `service_role` key empieza con `eyJ...` y NO debe estar en el frontend
-- Si se necesita la service_role (para operaciones administrativas), usar solo en backend o scripts locales
+### better-sqlite3 — instalación
+
+`better-sqlite3` necesita un binario nativo. Al hacer `npm install` en
+`backend/` descarga un binario precompilado para Windows automáticamente (no
+requiere Visual Studio Build Tools en el caso normal). Si algún día falla la
+descarga del binario, la alternativa es compilar desde fuente (necesita
+Python + build tools de Windows) — pero no debería hacer falta.
+
+### Supabase — ya no se usa, solo referencia histórica
+
+`supabase/schema.sql` y `supabase/migrate-excel.js` quedan como referencia de
+cómo era el modelo de datos original. `supabase/migrate-to-sqlite.js` es el
+único script de esa carpeta que todavía tiene un propósito activo (migración
+única de datos viejos). Una vez migrados los datos, el proyecto de Supabase
+en la nube puede borrarse — ver `INSTRUCCIONES_DEPLOY.md`.

@@ -12,6 +12,13 @@ app/.env.production
 # Build frontend
 app/dist/
 
+# Base de datos local (datos personales/financieros — nunca a GitHub)
+backend/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # Android — archivos generados (keystore, build outputs)
 app/android/.gradle/
 app/android/app/build/

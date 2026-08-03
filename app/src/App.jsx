@@ -22,7 +22,7 @@ const DEFAULT_GCAL_CLIENT_ID = '987611899031-7d8qbnul2e7u5mah6isvlt9mrii1c4al.ap
 // Servicios que NO deben crear eventos en Google Calendar
 const SERVICIOS_SIN_CALENDAR = ['NORA', 'ROSANA', 'AGUINALDO NORA', 'AGUINALDO ROSANA', 'MARIEL'];
 
-// Auto-genera vencimientos del dia 10 para servicios Mama en Supabase
+// Auto-genera vencimientos del dia 10 para servicios Mama
 async function autoGenerarMama(serviciosAPI) {
   const hoy  = new Date();
   const anio = hoy.getFullYear();
@@ -124,7 +124,7 @@ export default function App() {
       const data = await getServicios();
       setServicios(data.map(s => ({ ...s, id: s.nombre })));
     } catch (err) {
-      setErrorAPI('No se pudo conectar a Supabase. Verificar la conexión a internet.');
+      setErrorAPI('No se pudo conectar con el servidor local. Verificá que este corriendo (npm start / iniciar-app.bat).');
     } finally {
       setCargando(false);
     }
@@ -133,7 +133,7 @@ export default function App() {
   useEffect(() => {
     async function inicializar() {
       let cfg = cargarConfig();
-      // Intentar cargar config desde Supabase (sincroniza entre dispositivos)
+      // Intentar cargar config guardada en el servidor local
       try {
         const remoteConfig = await getConfig();
         if (remoteConfig.googleClientId) {
@@ -518,7 +518,7 @@ export default function App() {
         {cargando && (
           <div className='loading-state'>
             <div className='loading-spinner' />
-            <p>Cargando datos desde Supabase...</p>
+            <p>Cargando datos...</p>
           </div>
         )}
         {errorAPI && (
